@@ -188,9 +188,9 @@ export const useStore = create<State>()(
               { id: uid(), name: 'Pizza Margherita', price: 4200, qty: 1, category: 'food', to: [] },
               { id: uid(), name: 'Caesar salad', price: 3100, qty: 1, category: 'food', to: [d] },
               { id: uid(), name: 'Carbonara', price: 3900, qty: 1, category: 'food', to: [c] },
-              { id: uid(), name: 'Beer 0.5', price: 1600, qty: 3, category: 'alcohol', to: [] },
+              { id: uid(), name: 'Beer 0.5', price: 1600, qty: 3, category: 'drinks', to: [] },
               { id: uid(), name: 'Lemonade 1L', price: 2400, qty: 1, category: 'drinks', to: [] },
-              { id: uid(), name: 'Tiramisu', price: 2200, qty: 1, category: 'food', to: [] },
+              { id: uid(), name: 'Tiramisu', price: 2200, qty: 1, category: 'dessert', to: [] },
             ],
           })
           s.addReceipt(hid, {
@@ -204,7 +204,7 @@ export const useStore = create<State>()(
     },
     {
       name: 'bolu-v1',
-      version: 2,
+      version: 3,
       partialize: (s) => ({ friends: s.friends, hangouts: s.hangouts, nav: s.nav }),
       migrate: (persisted, version) => {
         const s = persisted as Pick<State, 'friends' | 'hangouts' | 'nav'>
@@ -217,6 +217,15 @@ export const useStore = create<State>()(
           s.friends = Object.fromEntries(
             Object.values(v1).map((f) => [f.id, { id: f.id, name: f.name, hue: f.hue, demo: f.demo, cashback: rate(f.id) }]),
           )
+        }
+        if (version < 3) {
+          // alcohol merged into drinks, hookah dropped
+          for (const h of s.hangouts)
+            for (const r of h.receipts)
+              for (const it of r.items as { category: string }[]) {
+                if (it.category === 'alcohol') it.category = 'drinks'
+                else if (it.category === 'hookah') it.category = r.section === 'dining' ? 'food' : 'other'
+              }
         }
         return s
       },

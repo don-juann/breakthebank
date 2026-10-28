@@ -1,5 +1,5 @@
 export type SectionKey = 'event' | 'dining' | 'transport'
-export type Category = 'food' | 'drinks' | 'alcohol' | 'hookah' | 'other'
+export type Category = 'food' | 'drinks' | 'dessert' | 'other'
 
 export interface Person {
   id: string
@@ -53,7 +53,6 @@ export const SECTION_KEYS: SectionKey[] = ['event', 'dining', 'transport']
 export const CATEGORIES: Record<Category, { label: string; emoji: string }> = {
   food: { label: 'Food', emoji: '🍽️' },
   drinks: { label: 'Drinks', emoji: '🥤' },
-  alcohol: { label: 'Alcohol', emoji: '🍷' },
-  hookah: { label: 'Hookah', emoji: '💨' },
+  dessert: { label: 'Dessert', emoji: '🍰' },
   other: { label: 'Other', emoji: '🧾' },
 }

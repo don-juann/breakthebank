@@ -15,7 +15,8 @@ import { IconBack, IconCamera, IconPeople, IconPlus, IconTrash } from '../ui/ico
 import { jelly } from '../ui/motion'
 import { useScan } from './Scan'
 
-const ORDER: Category[] = ['food', 'drinks', 'alcohol', 'hookah', 'other']
+const ORDER: Category[] = ['food', 'drinks', 'dessert', 'other']
+const PICKABLE: Category[] = ['food', 'drinks', 'dessert']
 
 export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; receipt: Receipt }) {
   const friends = useStore((s) => s.friends)
@@ -304,22 +305,26 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
           {qty} × {tenge(value)} = {tenge(qty * value)}
         </div>
       )}
-      <div className="label">Category</div>
-      <div className="chips">
-        {ORDER.map((k) => (
-          <Press
-            key={k}
-            round
-            className={`chip cat-${k} ${cat === k ? 'on' : ''}`}
-            onClick={() => {
-              setCat(k)
-              setCatTouched(true)
-            }}
-          >
-            {CATEGORIES[k].emoji} {CATEGORIES[k].label}
-          </Press>
-        ))}
-      </div>
+      {r.section === 'dining' && (
+        <>
+          <div className="label">Category</div>
+          <div className="chips">
+            {PICKABLE.map((k) => (
+              <Press
+                key={k}
+                round
+                className={`chip cat-${k} ${cat === k ? 'on' : ''}`}
+                onClick={() => {
+                  setCat(k)
+                  setCatTouched(true)
+                }}
+              >
+                {CATEGORIES[k].emoji} {CATEGORIES[k].label}
+              </Press>
+            ))}
+          </div>
+        </>
+      )}
       <div className="label">Who had it</div>
       <Press round className={`chip ${to.length === 0 ? 'on' : ''}`} onClick={() => setTo([])}>
         👥 Everyone, shared

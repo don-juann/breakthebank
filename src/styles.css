@@ -1093,11 +1093,8 @@ input:focus {
 .cat-drinks {
   --cat: #899481;
 }
-.cat-alcohol {
-  --cat: #5d1c34;
-}
-.cat-hookah {
-  --cat: #9c8670;
+.cat-dessert {
+  --cat: #8c4a5f;
 }
 .cat-other {
   --cat: #6e6862;
