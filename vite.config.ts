@@ -25,13 +25,6 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/(tesseract\.js|tesseract\.js-core)@/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'ocr-engine', expiration: { maxEntries: 10 } },
-          },
-        ],
       },
     }),
   ],

@@ -36,12 +36,6 @@ export const IconPlus = () => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 )
-export const IconCamera = () => (
-  <svg {...base}>
-    <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.5-2h6l1.5 2h2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" />
-    <circle cx="12" cy="13" r="3.5" />
-  </svg>
-)
 export const IconTrash = () => (
   <svg {...base}>
     <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13" />

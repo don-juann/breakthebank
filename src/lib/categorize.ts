@@ -10,6 +10,7 @@ const RULES: [Category, RegExp][] = [
 ]
 
 export function categorize(name: string, section: SectionKey): Category {
+  if (section !== 'dining') return 'other'
   for (const [cat, re] of RULES) if (re.test(name)) return cat
-  return section === 'dining' ? 'food' : 'other'
+  return 'food'
 }

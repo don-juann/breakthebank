@@ -6,14 +6,14 @@ import { back } from '../nav'
 import { calcReceipt } from '../lib/split'
 import { categorize } from '../lib/categorize'
 import { parseAmount, tenge } from '../lib/money'
-import { CATEGORIES, SECTIONS, type Category, type Hangout, type Item, type Person, type Receipt } from '../types'
+import { CATEGORIES, SECTION_KEYS, SECTIONS, type Category, type Hangout, type Item, type Person, type Receipt, type SectionKey } from '../types'
 import { Press } from '../ui/Press'
 import { Sheet } from '../ui/Sheet'
 import { Avatar, AvatarStack, Empty, Money, PeoplePicker, Stepper } from '../ui/bits'
 import { DragLayer, useDraggable, useDropTarget } from '../ui/dnd'
-import { IconBack, IconCamera, IconPeople, IconPlus, IconTrash } from '../ui/icons'
+import { IconBack, IconMore, IconPeople, IconPlus, IconTrash } from '../ui/icons'
 import { jelly } from '../ui/motion'
-import { useScan } from './Scan'
+import { toast } from '../ui/toast'
 
 const ORDER: Category[] = ['food', 'drinks', 'dessert', 'other']
 const PICKABLE: Category[] = ['food', 'drinks', 'dessert']
@@ -22,17 +22,24 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
   const friends = useStore((s) => s.friends)
   const st = useStore.getState()
   const [itemId, setItemId] = useState<string | null>(null)
+  const [menu, setMenu] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const people = h.people.map((id) => friends[id]).filter(Boolean)
   const members = people.filter((p) => r.members.includes(p.id))
   const payer = r.payerId ? friends[r.payerId] : undefined
   const c = calcReceipt(r, friends)
   const update = (patch: Partial<Receipt>) => st.updateReceipt(h.id, r.id, patch)
-  const scan = useScan(r.section, (res) => {
-    st.addItems(h.id, r.id, res.items)
-    if (!r.title && res.title) update({ title: res.title })
-    if (!r.service && res.service) update({ service: res.service })
-  })
+  const move = (k: SectionKey) => {
+    setMenu(false)
+    st.moveReceipt(h.id, r.id, k)
+    st.go({ tab: k })
+    toast(`Moved to ${SECTIONS[k].label}`)
+  }
+  const copy = (k: SectionKey) => {
+    setMenu(false)
+    st.copyReceipt(h.id, r.id, k)
+    toast(`Copied to ${SECTIONS[k].label}`)
+  }
   const groups = ORDER.map((cat) => ({ cat, items: r.items.filter((it) => it.category === cat) })).filter((g) => g.items.length)
 
   return (
@@ -45,8 +52,8 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
           <span className="nav-title">
             {SECTIONS[r.section].emoji} {SECTIONS[r.section].label}
           </span>
-          <Press round className="icon-btn danger" onClick={() => setConfirmDel(true)} aria-label="Delete receipt">
-            <IconTrash />
+          <Press round className="icon-btn" onClick={() => setMenu(true)} aria-label="More">
+            <IconMore />
           </Press>
         </div>
         <input
@@ -112,11 +119,7 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
           {r.items.length > 0 && <span className="hint">Hold, then drag onto a person</span>}
         </div>
         {r.items.length === 0 ? (
-          <Empty
-            emoji="🛒"
-            title="No items yet"
-            text={r.section === 'dining' ? 'Add them one by one or scan the receipt.' : 'Add them one by one.'}
-          />
+          <Empty emoji="🛒" title="No items yet" text="Add them one by one." />
         ) : (
           groups.map((g) => (
             <div key={g.cat} className="group">
@@ -133,11 +136,6 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
           <Press className="btn secondary" onClick={() => setItemId('new')}>
             <IconPlus /> Add item
           </Press>
-          {r.section === 'dining' && (
-            <Press className="btn secondary" onClick={scan.pick}>
-              <IconCamera /> Scan
-            </Press>
-          )}
         </div>
       </div>
 
@@ -150,6 +148,21 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
 
       <Sheet open={itemId !== null} onClose={() => setItemId(null)} title={itemId === 'new' ? 'New item' : 'Edit item'}>
         {itemId !== null && <ItemForm key={itemId} itemId={itemId} hangout={h} receipt={r} onClose={() => setItemId(null)} />}
+      </Sheet>
+      <Sheet open={menu} onClose={() => setMenu(false)} title={r.title || 'Untitled'}>
+        <div className="label">Move to</div>
+        <SectionButtons keys={SECTION_KEYS.filter((k) => k !== r.section)} onPick={move} />
+        <div className="label">Copy to</div>
+        <SectionButtons keys={SECTION_KEYS} onPick={copy} />
+        <Press
+          className="btn danger-ghost wide menu-delete"
+          onClick={() => {
+            setMenu(false)
+            setConfirmDel(true)
+          }}
+        >
+          <IconTrash /> Delete receipt
+        </Press>
       </Sheet>
       <Sheet open={confirmDel} onClose={() => setConfirmDel(false)} title="Delete this receipt?">
         <p className="muted">
@@ -166,8 +179,20 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
           Delete
         </Press>
       </Sheet>
-      {scan.ui}
     </DragLayer>
+  )
+}
+
+function SectionButtons({ keys, onPick }: { keys: SectionKey[]; onPick: (k: SectionKey) => void }) {
+  return (
+    <div className="section-btns">
+      {keys.map((k) => (
+        <Press key={k} className="section-btn" onClick={() => onPick(k)}>
+          <span className="section-btn-emoji">{SECTIONS[k].emoji}</span>
+          {SECTIONS[k].label}
+        </Press>
+      ))}
+    </div>
   )
 }
 

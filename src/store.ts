@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Hangout, Item, Person, Receipt, SectionKey } from './types'
 import { uid } from './lib/money'
+import { categorize } from './lib/categorize'
 
 export type Tab = SectionKey | 'settle'
 
@@ -21,7 +22,7 @@ interface State {
   updateFriend: (id: string, patch: Partial<Person>) => void
   removeFriend: (id: string) => void
 
-  createHangout: () => string
+  createHangout: (withCrew?: boolean) => string
   updateHangout: (id: string, patch: Partial<Pick<Hangout, 'name' | 'date' | 'dutch'>>) => void
   deleteHangout: (id: string) => void
   togglePerson: (hid: string, pid: string) => void
@@ -29,6 +30,8 @@ interface State {
   addReceipt: (hid: string, r: Partial<Receipt> & { section: SectionKey }) => string
   updateReceipt: (hid: string, rid: string, patch: Partial<Omit<Receipt, 'id' | 'items'>>) => void
   deleteReceipt: (hid: string, rid: string) => void
+  moveReceipt: (hid: string, rid: string, section: SectionKey) => void
+  copyReceipt: (hid: string, rid: string, section: SectionKey) => string
   toggleMember: (hid: string, rid: string, pid: string) => void
 
   addItems: (hid: string, rid: string, items: Omit<Item, 'id'>[]) => void
@@ -38,6 +41,21 @@ interface State {
   splitItem: (hid: string, rid: string, iid: string) => void
 
   loadDemo: () => string
+}
+
+// the usual crew: seeded once, then added to every new hangout
+const CREW = ['Aibyn', 'Gani', 'Sanzhar', 'Zhan']
+const crewId = (friends: Record<string, Person>, name: string) =>
+  Object.values(friends).find((f) => f.name.trim().toLowerCase() === name.toLowerCase())?.id
+
+function seedCrew(friends: Record<string, Person>) {
+  let hue = Object.keys(friends).length
+  for (const name of CREW)
+    if (!crewId(friends, name)) {
+      const id = uid()
+      friends[id] = { id, name, cashback: 0, hue: hue++ }
+    }
+  return friends
 }
 
 export const useStore = create<State>()(
@@ -52,6 +70,10 @@ export const useStore = create<State>()(
             return d
           }),
         }))
+      // categories only exist on Dining; elsewhere items are 'other'
+      const recategorize = (items: Item[], section: SectionKey) => {
+        for (const it of items) if (section !== 'dining' || it.category === 'other') it.category = categorize(it.name, section)
+      }
       const editReceipt = (hid: string, rid: string, fn: (r: Receipt, h: Hangout) => void) =>
         edit(hid, (h) => {
           const r = h.receipts.find((x) => x.id === rid)
@@ -59,7 +81,7 @@ export const useStore = create<State>()(
         })
 
       return {
-        friends: {},
+        friends: seedCrew({}),
         hangouts: [],
         nav: { hangoutId: null, receiptId: null, tab: 'dining' },
 
@@ -81,9 +103,11 @@ export const useStore = create<State>()(
             return { friends }
           }),
 
-        createHangout: () => {
+        createHangout: (withCrew = true) => {
           const id = uid()
-          const h: Hangout = { id, name: 'Jigilarmen', date: Date.now(), people: [], receipts: [] }
+          const friends = get().friends
+          const people = withCrew ? CREW.map((n) => crewId(friends, n)).filter((x) => x !== undefined) : []
+          const h: Hangout = { id, name: 'Jigilarmen', date: Date.now(), people, receipts: [] }
           set((s) => ({ hangouts: [h, ...s.hangouts] }))
           return id
         },
@@ -133,6 +157,20 @@ export const useStore = create<State>()(
           edit(hid, (h) => {
             h.receipts = h.receipts.filter((r) => r.id !== rid)
           }),
+        moveReceipt: (hid, rid, section) =>
+          editReceipt(hid, rid, (r) => {
+            r.section = section
+            recategorize(r.items, section)
+          }),
+        copyReceipt: (hid, rid, section) => {
+          const id = uid()
+          editReceipt(hid, rid, (r, h) => {
+            const items = r.items.map((it) => ({ ...it, id: uid(), to: [...it.to] }))
+            recategorize(items, section)
+            h.receipts.push({ ...r, id, section, members: [...r.members], items, createdAt: Date.now() })
+          })
+          return id
+        },
         toggleMember: (hid, rid, pid) =>
           editReceipt(hid, rid, (r) => {
             if (r.members.includes(pid)) {
@@ -175,7 +213,7 @@ export const useStore = create<State>()(
           const s = get()
           const mk = (name: string, cashback = 0) => s.addFriend({ name, cashback, demo: true })
           const [a, b, c, d] = [mk('Aruzhan', 5), mk('Dias'), mk('Madi'), mk('Tomiris', 3)]
-          const hid = s.createHangout()
+          const hid = s.createHangout(false)
           s.updateHangout(hid, { name: 'Friday night' })
           for (const p of [a, b, c, d]) s.togglePerson(hid, p)
           s.addReceipt(hid, {
@@ -204,7 +242,7 @@ export const useStore = create<State>()(
     },
     {
       name: 'bolu-v1',
-      version: 3,
+      version: 4,
       partialize: (s) => ({ friends: s.friends, hangouts: s.hangouts, nav: s.nav }),
       migrate: (persisted, version) => {
         const s = persisted as Pick<State, 'friends' | 'hangouts' | 'nav'>
@@ -227,6 +265,7 @@ export const useStore = create<State>()(
                 else if (it.category === 'hookah') it.category = r.section === 'dining' ? 'food' : 'other'
               }
         }
+        if (version < 4) s.friends = seedCrew(s.friends)
         return s
       },
     },

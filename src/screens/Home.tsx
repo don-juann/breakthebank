@@ -34,7 +34,7 @@ export function Home() {
 
       {hangouts.length === 0 ? (
         <>
-          <Empty emoji="🧾" title="No hangouts yet" text="Start one, add your friends, then scan or type in receipts." />
+          <Empty emoji="🧾" title="No hangouts yet" text="Start one, add your friends, then add what everyone spent." />
           <Press className="btn ghost wide" onClick={() => openHangout(st.loadDemo())}>
             Try a demo hangout
           </Press>

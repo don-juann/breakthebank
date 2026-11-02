@@ -133,10 +133,16 @@ function minimizeTransfers(list: PersonSummary[]): Transfer[] {
 }
 
 export const shortDate = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+// 02.11 style for the group chat
+const chatDate = (t: number) => {
+  const d = new Date(t)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}`
+}
 
 export function buildMessage(h: Hangout, people: People, s: Settlement, opts: { breakdown: boolean }) {
   const name = (id: string) => people[id]?.name ?? '?'
-  const date = shortDate(h.date)
+  const date = chatDate(h.date)
   const title = h.name.trim() || 'Hangout'
   const lines = [`🧾 ${title.includes(date) ? title : `${title} · ${date}`}`]
   lines.push(`💰 Total ${tenge(s.total)}` + (s.cashback >= 1 ? ` · cashback ${tenge(s.cashback)}` : ''))
