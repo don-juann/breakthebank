@@ -1,5 +1,6 @@
 import { SECTIONS, SECTION_KEYS, type Hangout, type Person, type Receipt, type SectionKey } from '../types'
 import { tenge } from './money'
+import type { Dict } from '../i18n'
 
 type People = Record<string, Person>
 
@@ -132,7 +133,6 @@ function minimizeTransfers(list: PersonSummary[]): Transfer[] {
   return out
 }
 
-export const shortDate = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 // 02.11 style for the group chat
 const chatDate = (t: number) => {
   const d = new Date(t)
@@ -140,21 +140,21 @@ const chatDate = (t: number) => {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}`
 }
 
-export function buildMessage(h: Hangout, people: People, s: Settlement, opts: { breakdown: boolean }) {
+export function buildMessage(h: Hangout, people: People, s: Settlement, { breakdown, t }: { breakdown: boolean; t: Dict }) {
   const name = (id: string) => people[id]?.name ?? '?'
   const date = chatDate(h.date)
-  const title = h.name.trim() || 'Hangout'
+  const title = h.name.trim() || t.msg.hangout
   const lines = [`🧾 ${title.includes(date) ? title : `${title} · ${date}`}`]
-  lines.push(`💰 Total ${tenge(s.total)}` + (s.cashback >= 1 ? ` · cashback ${tenge(s.cashback)}` : ''))
-  if (h.dutch) lines.push(`🇳🇱 Going Dutch: ${tenge(s.each)} each`)
+  lines.push(`💰 ${t.msg.total} ${tenge(s.total)}` + (s.cashback >= 1 ? ` · ${t.msg.cashback} ${tenge(s.cashback)}` : ''))
+  if (h.dutch) lines.push(`🇳🇱 ${t.msg.dutch(tenge(s.each))}`)
   lines.push('')
-  if (!s.transfers.length) lines.push('✅ All square, nobody owes anything')
+  if (!s.transfers.length) lines.push(`✅ ${t.allSquare}`)
   else {
-    lines.push('💸 Transfers')
+    lines.push(`💸 ${t.transfers}`)
     for (const t of s.transfers) lines.push(`${name(t.from)} → ${tenge(t.amount)} → ${name(t.to)}`)
   }
-  if (opts.breakdown && !h.dutch) {
-    lines.push('', '📊 Who spent what')
+  if (breakdown && !h.dutch) {
+    lines.push('', `📊 ${t.whoSpent}`)
     for (const p of [...s.people].sort((a, b) => b.spent - a.spent)) {
       if (p.spent < 1) continue
       const parts = SECTION_KEYS.filter((k) => p.bySection[k] >= 1).map((k) => `${SECTIONS[k].emoji} ${tenge(p.bySection[k])}`)

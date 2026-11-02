@@ -4,6 +4,7 @@ import type { Hangout } from '../types'
 import { Sheet } from '../ui/Sheet'
 import { Press } from '../ui/Press'
 import { AddTile, Avatar, PeoplePicker } from '../ui/bits'
+import { useT } from '../i18n'
 
 interface PersonSheetProps {
   open: boolean
@@ -14,8 +15,9 @@ interface PersonSheetProps {
 }
 
 export function PersonSheet(props: PersonSheetProps) {
+  const t = useT()
   return (
-    <Sheet open={props.open} onClose={props.onClose} title={props.personId ? 'Edit friend' : 'New friend'}>
+    <Sheet open={props.open} onClose={props.onClose} title={props.personId ? t.editFriend : t.newFriend}>
       {props.open && <PersonForm key={props.personId ?? 'new'} {...props} />}
     </Sheet>
   )
@@ -26,6 +28,7 @@ function PersonForm({ personId, onClose, onSaved, hangoutId }: PersonSheetProps)
   const usedIn = useStore((s) => s.hangouts.filter((h) => personId && h.people.includes(personId)).length)
   const [name, setName] = useState(existing?.name ?? '')
   const st = useStore.getState()
+  const t = useT()
 
   const save = () => {
     const trimmed = name.trim()
@@ -42,14 +45,14 @@ function PersonForm({ personId, onClose, onSaved, hangoutId }: PersonSheetProps)
     <div className="form">
       <input
         className="field big"
-        placeholder="Name"
+        placeholder={t.name}
         value={name}
         autoFocus={!personId}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && save()}
       />
       <Press className="btn primary wide" disabled={!name.trim()} onClick={save}>
-        {personId ? 'Save' : 'Add friend'}
+        {personId ? t.save : t.addFriend}
       </Press>
       {personId && hangoutId && (
         <Press
@@ -59,7 +62,7 @@ function PersonForm({ personId, onClose, onSaved, hangoutId }: PersonSheetProps)
             onClose()
           }}
         >
-          Remove from this hangout
+          {t.removeFromHangout}
         </Press>
       )}
       {personId && !hangoutId && (
@@ -71,7 +74,7 @@ function PersonForm({ personId, onClose, onSaved, hangoutId }: PersonSheetProps)
             onClose()
           }}
         >
-          {usedIn > 0 ? `In ${usedIn} hangout${usedIn > 1 ? 's' : ''}, can't delete` : 'Delete friend'}
+          {usedIn > 0 ? t.inHangouts(usedIn) : t.deleteFriend}
         </Press>
       )}
     </div>
@@ -84,20 +87,21 @@ export function PeopleSheet({ open, onClose, hangout }: { open: boolean; onClose
   const [creating, setCreating] = useState(false)
   const list = Object.values(friends).sort((a, b) => a.name.localeCompare(b.name))
   const toggle = (id: string) => useStore.getState().togglePerson(hangout.id, id)
+  const t = useT()
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="Who's hanging out?"
+      title={t.whosComing}
       footer={
         <Press className="btn primary wide" onClick={onClose}>
-          Done
+          {t.done}
         </Press>
       }
     >
-      {list.length === 0 && <p className="muted">Add your friends once and reuse them in every hangout.</p>}
+      {list.length === 0 && <p className="muted">{t.friendsHint}</p>}
       <PeoplePicker wrap size={54} people={list} selected={hangout.people} onToggle={toggle}>
-        <AddTile label="New" size={54} onClick={() => setCreating(true)} />
+        <AddTile label={t.newTile} size={54} onClick={() => setCreating(true)} />
       </PeoplePicker>
       <PersonSheet open={creating} personId={null} onClose={() => setCreating(false)} onSaved={toggle} />
     </Sheet>
@@ -108,8 +112,9 @@ export function FriendsSheet({ open, onClose }: { open: boolean; onClose: () => 
   const friends = useStore((s) => s.friends)
   const [edit, setEdit] = useState<string | null | undefined>(undefined)
   const list = Object.values(friends).sort((a, b) => a.name.localeCompare(b.name))
+  const t = useT()
   return (
-    <Sheet open={open} onClose={onClose} title="Friends">
+    <Sheet open={open} onClose={onClose} title={t.friends}>
       <div className="rows">
         {list.map((p) => (
           <Press key={p.id} className="row" onClick={() => setEdit(p.id)}>
@@ -121,9 +126,9 @@ export function FriendsSheet({ open, onClose }: { open: boolean; onClose: () => 
           </Press>
         ))}
       </div>
-      {list.length === 0 && <p className="muted">No friends yet. Add the people you usually hang out with.</p>}
+      {list.length === 0 && <p className="muted">{t.noFriends}</p>}
       <Press className="btn secondary wide" onClick={() => setEdit(null)}>
-        + Add friend
+        + {t.addFriend}
       </Press>
       <PersonSheet open={edit !== undefined} personId={edit ?? null} onClose={() => setEdit(undefined)} />
     </Sheet>

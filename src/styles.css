@@ -1,26 +1,41 @@
-/* Regal palette: #11100F #5D1C34 #A67D44 #899481 #CDBCAB #EFE9E1 */
+/* Regal is the default palette; others override the seed tokens from src/palettes.ts */
 :root {
   --bg: #efe9e1;
   --surface: #fcfaf6;
   --surface-2: #f5f0e9;
-  --fill: rgba(166, 140, 112, 0.16);
-  --fill-2: rgba(166, 140, 112, 0.3);
   --text: #11100f;
-  --text-2: rgba(17, 16, 15, 0.6);
-  --text-3: rgba(17, 16, 15, 0.32);
-  --sep: rgba(17, 16, 15, 0.1);
   --accent: #5d1c34;
   --accent-ink: #5d1c34;
-  --accent-soft: rgba(93, 28, 52, 0.1);
   --on-accent: #efe9e1;
-  --gold: #a67d44;
+  --tint: #a68c70;
   --good: #5e6a55;
-  --good-soft: rgba(137, 148, 129, 0.24);
   --bad: #9b2c3f;
-  --bad-soft: rgba(93, 28, 52, 0.1);
   --warn: #7c5a2c;
-  --warn-soft: rgba(166, 125, 68, 0.18);
-  --title: linear-gradient(120deg, #5d1c34, #a67d44);
+  --t1: #5d1c34;
+  --t2: #a67d44;
+  --cat-food: #a67d44;
+  --cat-drinks: #899481;
+  --cat-dessert: #8c4a5f;
+  --cat-other: #6e6862;
+  --ava-0: #5d1c34;
+  --ava-1: #a67d44;
+  --ava-2: #899481;
+  --ava-3: #3a3532;
+  --ava-4: #8c4a5f;
+  --ava-5: #7c5a2c;
+  --ava-6: #5e6a55;
+  --ava-7: #9c8670;
+
+  --fill: color-mix(in srgb, var(--tint) 16%, transparent);
+  --fill-2: color-mix(in srgb, var(--tint) 30%, transparent);
+  --text-2: color-mix(in srgb, var(--text) 60%, transparent);
+  --text-3: color-mix(in srgb, var(--text) 32%, transparent);
+  --sep: color-mix(in srgb, var(--text) 10%, transparent);
+  --accent-soft: color-mix(in srgb, var(--accent-ink) 12%, transparent);
+  --good-soft: color-mix(in srgb, var(--good) 20%, transparent);
+  --bad-soft: color-mix(in srgb, var(--bad) 12%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 18%, transparent);
+  --title: linear-gradient(120deg, var(--t1), var(--t2));
   --shadow: 0 1px 2px rgba(17, 16, 15, 0.05), 0 8px 24px rgba(93, 60, 40, 0.07);
   --shadow-lift: 0 18px 40px rgba(17, 16, 15, 0.2), 0 4px 10px rgba(17, 16, 15, 0.08);
   --top: env(safe-area-inset-top, 0px);
@@ -35,23 +50,18 @@
     --bg: #11100f;
     --surface: #1e1b19;
     --surface-2: #2a2623;
-    --fill: rgba(205, 188, 171, 0.13);
-    --fill-2: rgba(205, 188, 171, 0.24);
     --text: #efe9e1;
-    --text-2: rgba(239, 233, 225, 0.6);
-    --text-3: rgba(239, 233, 225, 0.3);
-    --sep: rgba(239, 233, 225, 0.1);
     --accent: #7a2946;
     --accent-ink: #c9a06a;
-    --accent-soft: rgba(166, 125, 68, 0.18);
-    --gold: #c9a06a;
+    --tint: #cdbcab;
     --good: #a3ae9a;
-    --good-soft: rgba(137, 148, 129, 0.2);
     --bad: #d38a9a;
-    --bad-soft: rgba(122, 41, 70, 0.3);
     --warn: #c9a06a;
-    --warn-soft: rgba(166, 125, 68, 0.18);
-    --title: linear-gradient(120deg, #c9a06a, #cdbcab);
+    --t1: #c9a06a;
+    --t2: #cdbcab;
+    --fill: color-mix(in srgb, var(--tint) 13%, transparent);
+    --fill-2: color-mix(in srgb, var(--tint) 24%, transparent);
+    --bad-soft: color-mix(in srgb, var(--bad) 20%, transparent);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-lift: 0 18px 44px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
@@ -201,6 +211,11 @@ input:focus {
   font-size: 15px;
 }
 
+.head-btns {
+  display: flex;
+  gap: 8px;
+}
+
 .nav-row {
   display: flex;
   align-items: center;
@@ -348,7 +363,7 @@ input:focus {
 .btn.primary {
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 6px 18px rgba(93, 28, 52, 0.28);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .btn.secondary {
@@ -1088,16 +1103,16 @@ input:focus {
 }
 
 .cat-food {
-  --cat: #a67d44;
+  --cat: var(--cat-food);
 }
 .cat-drinks {
-  --cat: #899481;
+  --cat: var(--cat-drinks);
 }
 .cat-dessert {
-  --cat: #8c4a5f;
+  --cat: var(--cat-dessert);
 }
 .cat-other {
-  --cat: #6e6862;
+  --cat: var(--cat-other);
 }
 
 .group-chip {
@@ -1110,7 +1125,7 @@ input:focus {
   font-size: 14px;
   font-weight: 700;
   background: color-mix(in srgb, var(--cat) 16%, transparent);
-  color: color-mix(in srgb, var(--cat), #11100f 25%);
+  color: color-mix(in srgb, var(--cat), var(--text) 25%);
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -1119,7 +1134,7 @@ input:focus {
 
 @media (prefers-color-scheme: dark) {
   .group-chip {
-    color: color-mix(in srgb, var(--cat), #efe9e1 45%);
+    color: color-mix(in srgb, var(--cat), var(--text) 45%);
     background: color-mix(in srgb, var(--cat) 28%, transparent);
   }
 }
@@ -1242,7 +1257,7 @@ input:focus {
 }
 
 .bubble.over .bubble-ava {
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--accent-ink), 0 10px 24px rgba(93, 28, 52, 0.35);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--accent-ink), 0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .all-ava {
@@ -1460,4 +1475,66 @@ input:focus {
     width: min(560px, calc(100% - 24px));
     translate: -50% 0;
   }
+}
+
+/* ---------- single-amount receipts ---------- */
+
+.receipt-amount {
+  margin: 10px 0 2px;
+}
+
+/* ---------- settings ---------- */
+
+.palettes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.palette {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.palette.on {
+  box-shadow: 0 0 0 2px var(--accent-ink), var(--shadow);
+}
+
+.swatches {
+  display: flex;
+  flex: none;
+  width: 132px;
+  height: 34px;
+  border-radius: 11px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 0.5px var(--sep);
+}
+
+.swatches span {
+  flex: 1;
+}
+
+.palette-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.palette-check {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 800;
 }

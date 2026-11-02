@@ -3,7 +3,7 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useStore, type Tab } from '../store'
 import { back } from '../nav'
-import { shortDate } from '../lib/split'
+import { useT } from '../i18n'
 import type { Hangout } from '../types'
 import { Press } from '../ui/Press'
 import { AddTile, Avatar } from '../ui/bits'
@@ -14,11 +14,11 @@ import { PeopleSheet, PersonSheet } from './People'
 import { SectionView } from './SectionView'
 import { SettleView } from './SettleView'
 
-const TABS: { key: Tab; label: string; Icon: () => React.JSX.Element }[] = [
-  { key: 'event', label: 'Event', Icon: IconEvent },
-  { key: 'dining', label: 'Dining', Icon: IconDining },
-  { key: 'transport', label: 'Transport', Icon: IconTransport },
-  { key: 'settle', label: 'Settle', Icon: IconSettle },
+const TABS: { key: Tab; Icon: () => React.JSX.Element }[] = [
+  { key: 'event', Icon: IconEvent },
+  { key: 'dining', Icon: IconDining },
+  { key: 'transport', Icon: IconTransport },
+  { key: 'settle', Icon: IconSettle },
 ]
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -31,6 +31,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
   const friends = useStore((s) => s.friends)
   const tab = useStore((s) => s.nav.tab)
   const st = useStore.getState()
+  const t = useT()
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [menu, setMenu] = useState(false)
@@ -55,7 +56,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
         />
         <div className="meta-row">
           <label className="date-pill">
-            {shortDate(h.date)}
+            {t.date(h.date)}
             <input
               type="date"
               value={isoDay(h.date)}
@@ -65,9 +66,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
               }}
             />
           </label>
-          <span>
-            {people.length} {people.length === 1 ? 'person' : 'people'}
-          </span>
+          <span>{t.people(people.length)}</span>
         </div>
 
         <div className="picker people-row">
@@ -79,7 +78,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
               <span className="pick-name">{p.name}</span>
             </Press>
           ))}
-          <AddTile label="Add" size={48} onClick={() => setPeopleOpen(true)} />
+          <AddTile label={t.add} size={48} onClick={() => setPeopleOpen(true)} />
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
@@ -100,13 +99,13 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
       </div>
 
       <nav className="tabbar">
-        {TABS.map(({ key, label, Icon }) => (
+        {TABS.map(({ key, Icon }) => (
           <Press key={key} round className={`tab ${tab === key ? 'on' : ''}`} onClick={() => st.go({ tab: key })}>
             {tab === key && <m.span layoutId={`tab-${h.id}`} className="tab-pill" transition={jelly} />}
             <span className="tab-icon">
               <Icon />
             </span>
-            <span className="tab-label">{label}</span>
+            <span className="tab-label">{key === 'settle' ? t.settle : t.sections[key].tab}</span>
           </Press>
         ))}
       </nav>
@@ -114,7 +113,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
       <PeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} hangout={h} />
       <PersonSheet open={editing !== null} personId={editing} hangoutId={h.id} onClose={() => setEditing(null)} />
       <Sheet open={menu} onClose={() => setMenu(false)} title={h.name}>
-        <p className="muted">Deleting removes all receipts in this hangout. Friends stay saved.</p>
+        <p className="muted">{t.deleteHangoutNote}</p>
         <Press
           className="btn danger wide"
           onClick={() => {
@@ -123,7 +122,7 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
             back()
           }}
         >
-          Delete hangout
+          {t.deleteHangout}
         </Press>
       </Sheet>
     </>

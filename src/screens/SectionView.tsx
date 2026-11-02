@@ -5,24 +5,15 @@ import { openReceipt } from '../nav'
 import { calcReceipt } from '../lib/split'
 import { categorize } from '../lib/categorize'
 import { parseAmount, tenge, uid } from '../lib/money'
-import { SECTIONS, type Hangout, type Person, type Receipt, type SectionKey } from '../types'
+import { useT } from '../i18n'
+import type { Hangout, Person, Receipt, SectionKey } from '../types'
 import { Press } from '../ui/Press'
 import { Avatar, AvatarStack, Empty, Money, PeoplePicker, Switch } from '../ui/bits'
 import { Sheet } from '../ui/Sheet'
 import { IconPlus } from '../ui/icons'
 import { snappy } from '../ui/motion'
 
-const DEFAULT_NAME: Record<SectionKey, string> = { event: 'Expense', dining: 'Dinner', transport: 'Taxi' }
-const PLACEHOLDER: Record<SectionKey, string> = {
-  event: 'Billiard, Football…',
-  dining: 'Restaurant name',
-  transport: 'Taxi, Yandex Go…',
-}
-const EMPTY: Record<SectionKey, [string, string, string]> = {
-  event: ['🎱', 'No expenses yet', 'Billiard, football, tickets: anything the hangout was about.'],
-  dining: ['🍽️', 'No receipts yet', 'Add a receipt, then drag each item onto whoever had it.'],
-  transport: ['🚕', 'No rides yet', 'Add each taxi with who paid and who rode along.'],
-}
+const EMPTY_EMOJI: Record<SectionKey, string> = { event: '🎱', dining: '🍽️', transport: '🚕' }
 
 export function SectionView({
   hangout: h,
@@ -34,28 +25,29 @@ export function SectionView({
   onNeedPeople: () => void
 }) {
   const friends = useStore((s) => s.friends)
+  const t = useT()
+  const sec = t.sections[section]
   const [quick, setQuick] = useState(false)
   const receipts = h.receipts.filter((r) => r.section === section)
   const total = receipts.reduce((s, r) => s + calcReceipt(r, friends).total, 0)
   const guard = (fn: () => void) => () => (h.people.length ? fn() : onNeedPeople())
-  const [emoji, title, text] = EMPTY[section]
 
   return (
     <>
       <div className="section-head">
-        <h2>{SECTIONS[section].label}</h2>
+        <h2>{sec.label}</h2>
         {total > 0 && <Money value={total} className="section-total" />}
       </div>
 
       {h.people.length === 0 ? (
         <>
-          <Empty emoji="👋" title="Who's coming?" text="Add the people in this hangout first." />
+          <Empty emoji="👋" title={t.whosComing} text={t.addPeopleFirst} />
           <Press className="btn primary wide" onClick={onNeedPeople}>
-            Add people
+            {t.addPeople}
           </Press>
         </>
       ) : receipts.length === 0 ? (
-        <Empty emoji={emoji} title={title} text={text} />
+        <Empty emoji={EMPTY_EMOJI[section]} title={sec.empty[0]} text={sec.empty[1]} />
       ) : (
         <div className="list">
           {receipts.map((r, i) => (
@@ -67,12 +59,12 @@ export function SectionView({
       {h.people.length > 0 && (
         <div className="fab-row">
           <Press className="btn primary float" onClick={guard(() => setQuick(true))}>
-            <IconPlus /> Add {SECTIONS[section].noun}
+            <IconPlus /> {sec.add}
           </Press>
         </div>
       )}
 
-      <Sheet open={quick} onClose={() => setQuick(false)} title={`New ${SECTIONS[section].noun}`}>
+      <Sheet open={quick} onClose={() => setQuick(false)} title={sec.title}>
         {quick && <QuickForm hangout={h} section={section} onClose={() => setQuick(false)} />}
       </Sheet>
     </>
@@ -80,27 +72,27 @@ export function SectionView({
 }
 
 function ReceiptCard({ r, friends, i }: { r: Receipt; friends: Record<string, Person>; i: number }) {
+  const t = useT()
   const c = calcReceipt(r, friends)
   const payer = r.payerId ? friends[r.payerId] : undefined
   const members = r.members.map((id) => friends[id]).filter(Boolean)
+  const title = r.title || (r.section === 'transport' ? t.sections.transport.name : t.untitled)
   return (
     <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...snappy, delay: i * 0.035 }}>
       <Press className="card receipt-card" onClick={() => openReceipt(r.id)}>
         <div className="rc-top">
-          <span className="rc-title">{r.title || 'Untitled'}</span>
+          <span className="rc-title">{title}</span>
           <span className="rc-total num">{tenge(c.total)}</span>
         </div>
         <div className="rc-meta">
           {payer ? (
             <span className="rc-payer">
-              <Avatar person={payer} size={20} /> {payer.name} paid
+              <Avatar person={payer} size={20} /> {t.paidName(payer.name)}
             </span>
           ) : (
-            <span className="warn-text">Who paid?</span>
+            <span className="warn-text">{t.whoPaid}</span>
           )}
-          <span>
-            · {r.items.length} item{r.items.length === 1 ? '' : 's'}
-          </span>
+          {r.section === 'dining' && <span>· {t.nItems(r.items.length)}</span>}
           {c.rate > 0 && <span className="badge good">−{Math.round(c.rate * 1000) / 10}%</span>}
           {r.service > 0 && <span className="badge">+{r.service}%</span>}
         </div>
@@ -112,27 +104,37 @@ function ReceiptCard({ r, friends, i }: { r: Receipt; friends: Record<string, Pe
 
 function QuickForm({ hangout: h, section, onClose }: { hangout: Hangout; section: SectionKey; onClose: () => void }) {
   const friends = useStore((s) => s.friends)
+  const t = useT()
+  const sec = t.sections[section]
   const people = h.people.map((id) => friends[id]).filter(Boolean)
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [payer, setPayer] = useState(h.people[0])
   const [members, setMembers] = useState(h.people)
-  // Dining is itemized by default; a single total is the opt-in
+  // only Dining is itemized, and there a single total is the opt-in
   const [whole, setWhole] = useState(section !== 'dining')
   const value = parseAmount(amount)
 
-  const create = (itemize: boolean) => {
-    const name = title.trim() || DEFAULT_NAME[section]
+  const create = () => {
+    const name = title.trim() || sec.name
     const items = whole && value > 0 ? [{ id: uid(), name, price: value, qty: 1, category: categorize(name, section), to: [] }] : []
-    const id = useStore.getState().addReceipt(h.id, { section, title: name, payerId: payer, members, items })
+    const id = useStore.getState().addReceipt(h.id, {
+      section,
+      title: section === 'transport' ? '' : name,
+      payerId: payer,
+      members,
+      items,
+    })
     onClose()
-    if (itemize) openReceipt(id)
+    if (!whole) openReceipt(id)
   }
 
   return (
     <div className="form">
-      <input className="field" placeholder={PLACEHOLDER[section]} value={title} onChange={(e) => setTitle(e.target.value)} />
-      {section === 'dining' && <Switch label="Whole receipt, no items" on={whole} onChange={setWhole} />}
+      {section !== 'transport' && (
+        <input className="field" placeholder={sec.placeholder} value={title} onChange={(e) => setTitle(e.target.value)} />
+      )}
+      {section === 'dining' && <Switch label={t.wholeReceipt} on={whole} onChange={setWhole} />}
       {whole && (
         <label className="amount-field">
           <input
@@ -144,28 +146,17 @@ function QuickForm({ hangout: h, section, onClose }: { hangout: Hangout; section
           <span>₸</span>
         </label>
       )}
-      <label className="label">Paid by</label>
+      <label className="label">{t.paidBy}</label>
       <PeoplePicker people={people} selected={[payer]} onToggle={setPayer} />
-      <label className="label">Split between</label>
+      <label className="label">{section === 'transport' ? t.whoRode : t.splitBetween}</label>
       <PeoplePicker
         people={people}
         selected={members}
         onToggle={(id) => setMembers((ms) => (ms.includes(id) ? ms.filter((x) => x !== id) : [...ms, id]))}
       />
-      {whole ? (
-        <Press className="btn primary wide" disabled={!(value > 0) || !members.length} onClick={() => create(false)}>
-          Add{value > 0 ? ` ${tenge(value)}` : ''}
-        </Press>
-      ) : (
-        <Press className="btn primary wide" disabled={!members.length} onClick={() => create(true)}>
-          Add items
-        </Press>
-      )}
-      {whole && section !== 'dining' && (
-        <Press className="btn ghost wide" onClick={() => create(true)}>
-          Itemize instead
-        </Press>
-      )}
+      <Press className="btn primary wide" disabled={(whole && !(value > 0)) || !members.length} onClick={create}>
+        {!whole ? t.addItems : value > 0 ? t.addAmount(tenge(value)) : t.add}
+      </Press>
     </div>
   )
 }

@@ -3,9 +3,10 @@ import { useAnimate } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useStore } from '../store'
 import { back } from '../nav'
-import { calcReceipt } from '../lib/split'
+import { calcReceipt, type ReceiptCalc } from '../lib/split'
 import { categorize } from '../lib/categorize'
 import { parseAmount, tenge } from '../lib/money'
+import { useT } from '../i18n'
 import { CATEGORIES, SECTION_KEYS, SECTIONS, type Category, type Hangout, type Item, type Person, type Receipt, type SectionKey } from '../types'
 import { Press } from '../ui/Press'
 import { Sheet } from '../ui/Sheet'
@@ -18,108 +19,260 @@ import { toast } from '../ui/toast'
 const ORDER: Category[] = ['food', 'drinks', 'dessert', 'other']
 const PICKABLE: Category[] = ['food', 'drinks', 'dessert']
 
-export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; receipt: Receipt }) {
-  const friends = useStore((s) => s.friends)
+interface Props {
+  hangout: Hangout
+  receipt: Receipt
+}
+
+export function ReceiptView(props: Props) {
+  // menu lives here so its sheet survives a move that swaps the layout
+  const menu = useReceiptMenu(props)
+  const Layout = props.receipt.section === 'dining' ? DiningReceipt : SimpleReceipt
+  return (
+    <>
+      <Layout {...props} onMenu={menu.open} />
+      {menu.ui}
+    </>
+  )
+}
+
+function useReceiptMenu({ hangout: h, receipt: r }: Props) {
+  const t = useT()
   const st = useStore.getState()
-  const [itemId, setItemId] = useState<string | null>(null)
   const [menu, setMenu] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
-  const people = h.people.map((id) => friends[id]).filter(Boolean)
-  const members = people.filter((p) => r.members.includes(p.id))
-  const payer = r.payerId ? friends[r.payerId] : undefined
-  const c = calcReceipt(r, friends)
-  const update = (patch: Partial<Receipt>) => st.updateReceipt(h.id, r.id, patch)
   const move = (k: SectionKey) => {
     setMenu(false)
     st.moveReceipt(h.id, r.id, k)
     st.go({ tab: k })
-    toast(`Moved to ${SECTIONS[k].label}`)
+    toast(t.movedTo(t.sections[k].label))
   }
   const copy = (k: SectionKey) => {
     setMenu(false)
     st.copyReceipt(h.id, r.id, k)
-    toast(`Copied to ${SECTIONS[k].label}`)
+    toast(t.copiedTo(t.sections[k].label))
   }
+  const ui = (
+    <>
+      <Sheet open={menu} onClose={() => setMenu(false)} title={r.title || t.sections[r.section].name}>
+        <div className="label">{t.moveTo}</div>
+        <SectionButtons keys={SECTION_KEYS.filter((k) => k !== r.section)} onPick={move} />
+        <div className="label">{t.copyTo}</div>
+        <SectionButtons keys={SECTION_KEYS} onPick={copy} />
+        <Press
+          className="btn danger-ghost wide menu-delete"
+          onClick={() => {
+            setMenu(false)
+            setConfirmDel(true)
+          }}
+        >
+          <IconTrash /> {t.delete}
+        </Press>
+      </Sheet>
+      <Sheet open={confirmDel} onClose={() => setConfirmDel(false)} title={t.deleteQ}>
+        <p className="muted">{r.section === 'dining' ? t.removesItems(r.items.length) : t.removes}</p>
+        <Press
+          className="btn danger wide"
+          onClick={() => {
+            setConfirmDel(false)
+            st.deleteReceipt(h.id, r.id)
+            back()
+          }}
+        >
+          {t.delete}
+        </Press>
+      </Sheet>
+    </>
+  )
+  return { open: () => setMenu(true), ui }
+}
+
+function NavRow({ section, onMenu }: { section: SectionKey; onMenu: () => void }) {
+  const t = useT()
+  return (
+    <div className="nav-row">
+      <Press round className="icon-btn" onClick={back} aria-label="Back">
+        <IconBack />
+      </Press>
+      <span className="nav-title">
+        {SECTIONS[section].emoji} {t.sections[section].label}
+      </span>
+      <Press round className="icon-btn" onClick={onMenu} aria-label="More">
+        <IconMore />
+      </Press>
+    </div>
+  )
+}
+
+function PayerAndMembers({ hangout: h, receipt: r }: Props) {
+  const t = useT()
+  const friends = useStore((s) => s.friends)
+  const st = useStore.getState()
+  const people = h.people.map((id) => friends[id]).filter(Boolean)
+  return (
+    <div className="card pad">
+      <div className="label">{t.paidBy}</div>
+      <PeoplePicker
+        people={people}
+        selected={r.payerId ? [r.payerId] : []}
+        onToggle={(id) => st.updateReceipt(h.id, r.id, { payerId: id, cashback: friends[id]?.cashback ?? 0 })}
+      />
+      <div className="label">{r.section === 'transport' ? t.whoRode : t.whosIn}</div>
+      <PeoplePicker people={people} selected={r.members} onToggle={(id) => st.toggleMember(h.id, r.id, id)} />
+    </div>
+  )
+}
+
+function FeeRows({ hangout: h, receipt: r, c, service }: Props & { c: ReceiptCalc; service: boolean }) {
+  const t = useT()
+  const friends = useStore((s) => s.friends)
+  const st = useStore.getState()
+  const payer = r.payerId ? friends[r.payerId] : undefined
+  return (
+    <>
+      {service && (
+        <div className="fee-row">
+          <div>
+            <div className="fee-name">{t.service}</div>
+            <div className="fee-sub">{tenge(c.service)}</div>
+          </div>
+          <Stepper value={r.service} onChange={(v) => st.updateReceipt(h.id, r.id, { service: v })} />
+        </div>
+      )}
+      <div className="fee-row">
+        <div>
+          <div className="fee-name">{t.cashback}</div>
+          <div className="fee-sub">{payer ? t.cardShared(payer.name) : t.sharedAll}</div>
+        </div>
+        <Stepper
+          value={r.cashback}
+          step={0.5}
+          max={30}
+          onChange={(v) => {
+            st.updateReceipt(h.id, r.id, { cashback: v })
+            // remembered as the default for this person's next receipt
+            if (payer) st.updateFriend(payer.id, { cashback: v })
+          }}
+        />
+      </div>
+    </>
+  )
+}
+
+/** Event and Transport: one amount split between whoever was in */
+function SimpleReceipt({ onMenu, ...props }: Props & { onMenu: () => void }) {
+  const { hangout: h, receipt: r } = props
+  const t = useT()
+  const friends = useStore((s) => s.friends)
+  const st = useStore.getState()
+  const sec = t.sections[r.section]
+  const c = calcReceipt(r, friends)
+  const [amount, setAmount] = useState(c.subtotal ? String(Math.round(c.subtotal * 100) / 100) : '')
+  const members = r.members.filter((id) => friends[id])
+  const each = members.length ? (c.total - c.cashback) / members.length : 0
+
+  return (
+    <div className="scroll">
+      <NavRow section={r.section} onMenu={onMenu} />
+      {r.section === 'event' ? (
+        <input
+          className="title-input"
+          placeholder={sec.placeholder}
+          value={r.title}
+          onChange={(e) => {
+            st.updateReceipt(h.id, r.id, { title: e.target.value })
+            if (r.items[0]) st.updateItem(h.id, r.id, r.items[0].id, { name: e.target.value })
+          }}
+        />
+      ) : (
+        <h1 className="title-input">{r.title || sec.name}</h1>
+      )}
+      <label className="amount-field receipt-amount">
+        <input
+          inputMode="decimal"
+          placeholder="0"
+          value={amount}
+          onChange={(e) => {
+            const v = e.target.value.replace(/[^\d.,\s]/g, '')
+            setAmount(v)
+            st.setAmount(h.id, r.id, parseAmount(v) || 0, r.title || sec.name)
+          }}
+        />
+        <span>₸</span>
+      </label>
+
+      <PayerAndMembers {...props} />
+
+      <div className="card pad">
+        <FeeRows {...props} c={c} service={r.section === 'event'} />
+        <div className="sum-row total">
+          <span>{t.total}</span>
+          <Money value={c.total} />
+        </div>
+        {c.cashback > 0 && (
+          <div className="sum-row good">
+            <span>{t.cashback}</span>
+            <Money value={-c.cashback} />
+          </div>
+        )}
+        {each > 0 && (
+          <div className="sum-row">
+            <span>{t.each}</span>
+            <Money value={each} />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DiningReceipt({ onMenu, ...props }: Props & { onMenu: () => void }) {
+  const { hangout: h, receipt: r } = props
+  const t = useT()
+  const friends = useStore((s) => s.friends)
+  const st = useStore.getState()
+  const [itemId, setItemId] = useState<string | null>(null)
+  const members = h.people.map((id) => friends[id]).filter((p) => p && r.members.includes(p.id))
+  const c = calcReceipt(r, friends)
   const groups = ORDER.map((cat) => ({ cat, items: r.items.filter((it) => it.category === cat) })).filter((g) => g.items.length)
 
   return (
     <DragLayer onDrop={(ids, target) => st.assign(h.id, r.id, ids, target)}>
       <div className="scroll with-dock">
-        <div className="nav-row">
-          <Press round className="icon-btn" onClick={back} aria-label="Back">
-            <IconBack />
-          </Press>
-          <span className="nav-title">
-            {SECTIONS[r.section].emoji} {SECTIONS[r.section].label}
-          </span>
-          <Press round className="icon-btn" onClick={() => setMenu(true)} aria-label="More">
-            <IconMore />
-          </Press>
-        </div>
+        <NavRow section={r.section} onMenu={onMenu} />
         <input
           className="title-input"
-          placeholder="Name this receipt"
+          placeholder={t.receiptName}
           value={r.title}
-          onChange={(e) => update({ title: e.target.value })}
+          onChange={(e) => st.updateReceipt(h.id, r.id, { title: e.target.value })}
         />
 
-        <div className="card pad">
-          <div className="label">Paid by</div>
-          <PeoplePicker
-            people={people}
-            selected={r.payerId ? [r.payerId] : []}
-            onToggle={(id) => update({ payerId: id, cashback: friends[id]?.cashback ?? 0 })}
-          />
-          <div className="label">Who's in</div>
-          <PeoplePicker people={people} selected={r.members} onToggle={(id) => st.toggleMember(h.id, r.id, id)} />
-        </div>
+        <PayerAndMembers {...props} />
 
         <div className="card pad">
-          <div className="fee-row">
-            <div>
-              <div className="fee-name">Service</div>
-              <div className="fee-sub">{tenge(c.service)}</div>
-            </div>
-            <Stepper value={r.service} onChange={(v) => update({ service: v })} />
-          </div>
-          <div className="fee-row">
-            <div>
-              <div className="fee-name">Cashback</div>
-              <div className="fee-sub">{payer ? `${payer.name}'s card, shared by everyone` : 'Shared by everyone'}</div>
-            </div>
-            <Stepper
-              value={r.cashback}
-              step={0.5}
-              max={30}
-              onChange={(v) => {
-                update({ cashback: v })
-                // remembered as the default for this person's next receipt
-                if (payer) st.updateFriend(payer.id, { cashback: v })
-              }}
-            />
-          </div>
+          <FeeRows {...props} c={c} service />
           <div className="sum-row">
-            <span>Subtotal</span>
+            <span>{t.subtotal}</span>
             <span className="num">{tenge(c.subtotal)}</span>
           </div>
           <div className="sum-row total">
-            <span>Total</span>
+            <span>{t.total}</span>
             <Money value={c.total} />
           </div>
           {c.cashback > 0 && (
             <div className="sum-row good">
-              <span>Cashback</span>
+              <span>{t.cashback}</span>
               <Money value={-c.cashback} />
             </div>
           )}
         </div>
 
         <div className="items-head">
-          <h3>Items</h3>
-          {r.items.length > 0 && <span className="hint">Hold, then drag onto a person</span>}
+          <h3>{t.items}</h3>
+          {r.items.length > 0 && <span className="hint">{t.dragHint}</span>}
         </div>
         {r.items.length === 0 ? (
-          <Empty emoji="🛒" title="No items yet" text="Add them one by one." />
+          <Empty emoji="🛒" title={t.noItems} text={t.oneByOne} />
         ) : (
           groups.map((g) => (
             <div key={g.cat} className="group">
@@ -134,62 +287,33 @@ export function ReceiptView({ hangout: h, receipt: r }: { hangout: Hangout; rece
         )}
         <div className="row-btns">
           <Press className="btn secondary" onClick={() => setItemId('new')}>
-            <IconPlus /> Add item
+            <IconPlus /> {t.addItem}
           </Press>
         </div>
       </div>
 
       <div className="dock">
-        <Bubble id="all" label="Everyone" />
+        <Bubble id="all" label={t.everyone} />
         {members.map((p) => (
           <Bubble key={p.id} id={p.id} person={p} amount={c.shares[p.id] ?? 0} />
         ))}
       </div>
 
-      <Sheet open={itemId !== null} onClose={() => setItemId(null)} title={itemId === 'new' ? 'New item' : 'Edit item'}>
+      <Sheet open={itemId !== null} onClose={() => setItemId(null)} title={itemId === 'new' ? t.newItem : t.editItem}>
         {itemId !== null && <ItemForm key={itemId} itemId={itemId} hangout={h} receipt={r} onClose={() => setItemId(null)} />}
-      </Sheet>
-      <Sheet open={menu} onClose={() => setMenu(false)} title={r.title || 'Untitled'}>
-        <div className="label">Move to</div>
-        <SectionButtons keys={SECTION_KEYS.filter((k) => k !== r.section)} onPick={move} />
-        <div className="label">Copy to</div>
-        <SectionButtons keys={SECTION_KEYS} onPick={copy} />
-        <Press
-          className="btn danger-ghost wide menu-delete"
-          onClick={() => {
-            setMenu(false)
-            setConfirmDel(true)
-          }}
-        >
-          <IconTrash /> Delete receipt
-        </Press>
-      </Sheet>
-      <Sheet open={confirmDel} onClose={() => setConfirmDel(false)} title="Delete this receipt?">
-        <p className="muted">
-          {r.items.length} item{r.items.length === 1 ? '' : 's'} will be removed from the split.
-        </p>
-        <Press
-          className="btn danger wide"
-          onClick={() => {
-            setConfirmDel(false)
-            st.deleteReceipt(h.id, r.id)
-            back()
-          }}
-        >
-          Delete
-        </Press>
       </Sheet>
     </DragLayer>
   )
 }
 
 function SectionButtons({ keys, onPick }: { keys: SectionKey[]; onPick: (k: SectionKey) => void }) {
+  const t = useT()
   return (
     <div className="section-btns">
       {keys.map((k) => (
         <Press key={k} className="section-btn" onClick={() => onPick(k)}>
           <span className="section-btn-emoji">{SECTIONS[k].emoji}</span>
-          {SECTIONS[k].label}
+          {t.sections[k].label}
         </Press>
       ))}
     </div>
@@ -197,6 +321,7 @@ function SectionButtons({ keys, onPick }: { keys: SectionKey[]; onPick: (k: Sect
 }
 
 function ItemChip({ item: it, friends, onTap }: { item: Item; friends: Record<string, Person>; onTap: () => void }) {
+  const t = useT()
   const d = useDraggable(it.id, [it.id], onTap)
   const who = it.to.map((id) => friends[id]).filter(Boolean)
   return (
@@ -211,7 +336,7 @@ function ItemChip({ item: it, friends, onTap }: { item: Item; friends: Record<st
     >
       <span className="item-dot" />
       <div className="item-main">
-        <div className="item-name">{it.name}</div>
+        <div className="item-name">{it.name || t.item}</div>
         {it.qty !== 1 && (
           <div className="item-sub">
             {it.qty} × {tenge(it.price)}
@@ -220,13 +345,14 @@ function ItemChip({ item: it, friends, onTap }: { item: Item; friends: Record<st
       </div>
       <div className="item-side">
         <span className="item-amt num">{tenge(it.qty * it.price)}</span>
-        {who.length ? <AvatarStack people={who} size={20} /> : <span className="tag">Everyone</span>}
+        {who.length ? <AvatarStack people={who} size={20} /> : <span className="tag">{t.everyone}</span>}
       </div>
     </m.div>
   )
 }
 
 function GroupChip({ cat, ids }: { cat: Category; ids: string[] }) {
+  const t = useT()
   const d = useDraggable(`group-${cat}`, ids)
   return (
     <m.div
@@ -238,23 +364,24 @@ function GroupChip({ cat, ids }: { cat: Category; ids: string[] }) {
       transition={jelly}
     >
       <span>{CATEGORIES[cat].emoji}</span>
-      {CATEGORIES[cat].label}
+      {t.cats[cat]}
       <span className="count">{ids.length}</span>
     </m.div>
   )
 }
 
 function Bubble({ id, person, label, amount }: { id: string; person?: Person; label?: string; amount?: number }) {
-  const t = useDropTarget(id)
+  const t = useT()
+  const target = useDropTarget(id)
   const [scope, animate] = useAnimate<HTMLDivElement>()
   useEffect(() => {
-    if (t.hits) animate(scope.current, { scale: [1.45, 1] }, { type: 'spring', stiffness: 480, damping: 9 })
-  }, [t.hits, animate, scope])
+    if (target.hits) animate(scope.current, { scale: [1.45, 1] }, { type: 'spring', stiffness: 480, damping: 9 })
+  }, [target.hits, animate, scope])
   return (
     <m.div
-      ref={t.ref}
-      className={`bubble ${t.over ? 'over' : ''}`}
-      animate={{ scale: t.over ? 1.18 : 1, y: t.over ? -10 : t.dragging ? -4 : 0 }}
+      ref={target.ref}
+      className={`bubble ${target.over ? 'over' : ''}`}
+      animate={{ scale: target.over ? 1.18 : 1, y: target.over ? -10 : target.dragging ? -4 : 0 }}
       transition={jelly}
     >
       <div ref={scope} className="bubble-ava">
@@ -267,12 +394,13 @@ function Bubble({ id, person, label, amount }: { id: string; person?: Person; la
         )}
       </div>
       <div className="bubble-name">{person?.name ?? label}</div>
-      {amount != null ? <Money value={amount} className="bubble-amt" /> : <span className="bubble-amt">shared</span>}
+      {amount != null ? <Money value={amount} className="bubble-amt" /> : <span className="bubble-amt">{t.shared}</span>}
     </m.div>
   )
 }
 
 function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string; hangout: Hangout; receipt: Receipt; onClose: () => void }) {
+  const t = useT()
   const friends = useStore((s) => s.friends)
   const existing = r.items.find((it) => it.id === itemId)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -288,7 +416,7 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
 
   const save = (again: boolean) => {
     if (!(value > 0)) return
-    const data = { name: name.trim() || 'Item', price: value, qty, category: cat, to }
+    const data = { name: name.trim() || t.item, price: value, qty, category: cat, to }
     if (existing) st.updateItem(h.id, r.id, existing.id, data)
     else st.addItems(h.id, r.id, [data])
     if (!again) return onClose()
@@ -305,7 +433,7 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
       <input
         ref={nameRef}
         className="field big"
-        placeholder="Item name"
+        placeholder={t.itemName}
         value={name}
         autoFocus={!existing}
         onChange={(e) => {
@@ -317,7 +445,7 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
         <label className="amount-field compact">
           <input
             inputMode="decimal"
-            placeholder="Price"
+            placeholder={t.price}
             value={price}
             onChange={(e) => setPrice(e.target.value.replace(/[^\d.,\s]/g, ''))}
           />
@@ -330,35 +458,31 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
           {qty} × {tenge(value)} = {tenge(qty * value)}
         </div>
       )}
-      {r.section === 'dining' && (
-        <>
-          <div className="label">Category</div>
-          <div className="chips">
-            {PICKABLE.map((k) => (
-              <Press
-                key={k}
-                round
-                className={`chip cat-${k} ${cat === k ? 'on' : ''}`}
-                onClick={() => {
-                  setCat(k)
-                  setCatTouched(true)
-                }}
-              >
-                {CATEGORIES[k].emoji} {CATEGORIES[k].label}
-              </Press>
-            ))}
-          </div>
-        </>
-      )}
-      <div className="label">Who had it</div>
+      <div className="label">{t.category}</div>
+      <div className="chips">
+        {PICKABLE.map((k) => (
+          <Press
+            key={k}
+            round
+            className={`chip cat-${k} ${cat === k ? 'on' : ''}`}
+            onClick={() => {
+              setCat(k)
+              setCatTouched(true)
+            }}
+          >
+            {CATEGORIES[k].emoji} {t.cats[k]}
+          </Press>
+        ))}
+      </div>
+      <div className="label">{t.whoHad}</div>
       <Press round className={`chip ${to.length === 0 ? 'on' : ''}`} onClick={() => setTo([])}>
-        👥 Everyone, shared
+        👥 {t.everyoneShared}
       </Press>
       <PeoplePicker
         people={members}
         selected={to}
         dimUnselected={to.length > 0}
-        onToggle={(id) => setTo((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]))}
+        onToggle={(id) => setTo((ts) => (ts.includes(id) ? ts.filter((x) => x !== id) : [...ts, id]))}
       />
       {existing && Number.isInteger(existing.qty) && existing.qty > 1 && (
         <Press
@@ -368,7 +492,7 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
             onClose()
           }}
         >
-          Split into {existing.qty} separate items
+          {t.splitInto(existing.qty)}
         </Press>
       )}
       <div className="row-btns">
@@ -380,15 +504,15 @@ function ItemForm({ itemId, hangout: h, receipt: r, onClose }: { itemId: string;
               onClose()
             }}
           >
-            Delete
+            {t.delete}
           </Press>
         ) : (
           <Press className="btn secondary" disabled={!(value > 0)} onClick={() => save(true)}>
-            Add & next
+            {t.addNext}
           </Press>
         )}
         <Press className="btn primary" disabled={!(value > 0)} onClick={() => save(false)}>
-          {existing ? 'Save' : 'Add'}
+          {existing ? t.save : t.add}
         </Press>
       </div>
     </div>

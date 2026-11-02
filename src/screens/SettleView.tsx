@@ -9,29 +9,31 @@ import { Avatar, Money, Switch, copyText } from '../ui/bits'
 import { FlagNL, IconCopy, IconShare } from '../ui/icons'
 import { jelly, snappy } from '../ui/motion'
 import { toast } from '../ui/toast'
+import { useT } from '../i18n'
 
 export function SettleView({ hangout: h }: { hangout: Hangout }) {
   const friends = useStore((s) => s.friends)
   const s = useMemo(() => settle(h, friends), [h, friends])
   const [breakdown, setBreakdown] = useState(true)
-  const msg = buildMessage(h, friends, s, { breakdown })
+  const t = useT()
+  const msg = buildMessage(h, friends, s, { breakdown, t })
 
-  const copy = async () => toast((await copyText(msg)) ? 'Copied, paste it in the chat' : "Couldn't copy")
+  const copy = async () => toast((await copyText(msg)) ? t.copied : t.copyFailed)
   const share = () => navigator.share({ text: msg }).catch(() => {})
   const toggleDutch = () => useStore.getState().updateHangout(h.id, { dutch: !h.dutch })
 
   return (
     <>
       <div className="section-head">
-        <h2>Settle up</h2>
+        <h2>{t.settleUp}</h2>
       </div>
       <div className="stats">
         <div className="stat">
-          <span className="stat-label">Total spent</span>
+          <span className="stat-label">{t.totalSpent}</span>
           <Money value={s.total} className="stat-value" />
         </div>
         <div className="stat">
-          <span className="stat-label">Cashback saved</span>
+          <span className="stat-label">{t.cashbackSaved}</span>
           <Money value={s.cashback} className="stat-value good" />
         </div>
       </div>
@@ -48,28 +50,19 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
             >
               <FlagNL />
             </m.span>
-            {h.dutch ? (
-              <>
-                Going Dutch · <span className="num">{tenge(s.each)}</span> each
-              </>
-            ) : (
-              'Go Dutch'
-            )}
+            {h.dutch ? t.goingDutch(tenge(s.each)) : t.goDutch}
           </Press>
-          <p className="muted small dutch-note">Split everything evenly among everyone</p>
+          <p className="muted small dutch-note">{t.dutchNote}</p>
         </div>
       )}
 
       {s.skipped > 0 && (
-        <div className="warn-card">
-          {s.skipped} {s.skipped === 1 ? 'receipt has' : 'receipts have'} no payer or nobody in it, so {s.skipped === 1 ? "it's" : "they're"} not
-          counted.
-        </div>
+        <div className="warn-card">{t.skipped(s.skipped)}</div>
       )}
 
-      <div className="group-title">Transfers</div>
+      <div className="group-title">{t.transfers}</div>
       {s.transfers.length === 0 ? (
-        <div className="card pad all-square">{s.total > 0 ? '✅ All square, nobody owes anything' : 'Add some expenses first'}</div>
+        <div className="card pad all-square">{s.total > 0 ? `✅ ${t.allSquare}` : t.addFirst}</div>
       ) : (
         <div className="list">
           {s.transfers.map((t, i) => (
@@ -80,7 +73,7 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
 
       {s.total > 0 && (
         <>
-          <div className="group-title">Balances</div>
+          <div className="group-title">{t.balances}</div>
           <div className="card rows">
             {[...s.people]
               .sort((a, b) => b.balance - a.balance)
@@ -90,9 +83,9 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
                   <span className="row-main">
                     <span className="row-title">{friends[p.id].name}</span>
                     <span className="row-sub">
-                      spent {tenge(p.spent)}
-                      {p.paid > 0 && ` · paid ${tenge(p.paid)}`}
-                      {p.cashback >= 1 && ` · cashback ${tenge(p.cashback)}`}
+                      {t.spent(tenge(p.spent))}
+                      {p.paid > 0 && ` · ${t.paid(tenge(p.paid))}`}
+                      {p.cashback >= 1 && ` · ${t.cashbackOf(tenge(p.cashback))}`}
                     </span>
                   </span>
                   <span className={`bal num ${Math.round(p.balance) > 0 ? 'pos' : Math.round(p.balance) < 0 ? 'neg' : ''}`}>
@@ -103,17 +96,17 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
               ))}
           </div>
 
-          <div className="group-title">Message for the group chat</div>
+          <div className="group-title">{t.chatMessage}</div>
           <div className="card pad">
-            {!h.dutch && <Switch label="Who spent what" on={breakdown} onChange={setBreakdown} />}
+            {!h.dutch && <Switch label={t.whoSpent} on={breakdown} onChange={setBreakdown} />}
             <pre className="msg">{msg}</pre>
             <div className="row-btns">
               <Press className="btn primary" onClick={copy}>
-                <IconCopy /> Copy
+                <IconCopy /> {t.copy}
               </Press>
               {'share' in navigator && (
                 <Press className="btn secondary" onClick={share}>
-                  <IconShare /> Share
+                  <IconShare /> {t.share}
                 </Press>
               )}
             </div>

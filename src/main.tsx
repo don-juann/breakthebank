@@ -4,10 +4,12 @@ import { LazyMotion, MotionConfig, domMax } from 'motion/react'
 import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { initNav } from './nav'
+import { initPrefs } from './prefs'
 import './styles.css'
 
 registerSW({ immediate: true })
 initNav()
+initPrefs()
 
 const vv = window.visualViewport
 if (vv) {

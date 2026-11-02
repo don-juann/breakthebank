@@ -9,10 +9,9 @@ import { jelly, snappy } from './motion'
 export const initials = (name: string) =>
   name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?'
 
-const AVATAR = ['#5d1c34', '#a67d44', '#899481', '#3a3532', '#8c4a5f', '#7c5a2c', '#5e6a55', '#9c8670']
-
+// avatar colors come from the palette (--ava-0…7)
 export const personBg = (hue: number) => {
-  const c = AVATAR[Math.abs(hue) % AVATAR.length]
+  const c = `var(--ava-${Math.abs(hue) % 8})`
   return `linear-gradient(140deg, color-mix(in srgb, ${c}, #fff 22%), ${c})`
 }
 

@@ -2,41 +2,50 @@ import { useState } from 'react'
 import * as m from 'motion/react-m'
 import { useStore } from '../store'
 import { openHangout } from '../nav'
-import { settle, shortDate } from '../lib/split'
+import { settle } from '../lib/split'
+import { useT } from '../i18n'
 import type { Hangout, Person } from '../types'
 import { Press } from '../ui/Press'
 import { AvatarStack, Empty, Money } from '../ui/bits'
-import { IconPeople, IconPlus } from '../ui/icons'
+import { IconGear, IconPeople, IconPlus } from '../ui/icons'
 import { snappy } from '../ui/motion'
 import { FriendsSheet } from './People'
+import { SettingsSheet } from './Settings'
 
 export function Home() {
   const hangouts = useStore((s) => s.hangouts)
   const friends = useStore((s) => s.friends)
   const [roster, setRoster] = useState(false)
+  const [settings, setSettings] = useState(false)
   const st = useStore.getState()
+  const t = useT()
 
   return (
     <div className="scroll">
       <header className="home-head">
         <div>
           <h1 className="large-title">Break the Bank</h1>
-          <p className="tagline">Split the bill, keep the friends.</p>
+          <p className="tagline">{t.tagline}</p>
         </div>
-        <Press round className="icon-btn" onClick={() => setRoster(true)} aria-label="Friends">
-          <IconPeople />
-        </Press>
+        <div className="head-btns">
+          <Press round className="icon-btn" onClick={() => setSettings(true)} aria-label={t.settings}>
+            <IconGear />
+          </Press>
+          <Press round className="icon-btn" onClick={() => setRoster(true)} aria-label={t.friends}>
+            <IconPeople />
+          </Press>
+        </div>
       </header>
 
       <Press className="btn primary big wide" onClick={() => openHangout(st.createHangout())}>
-        <IconPlus /> New hangout
+        <IconPlus /> {t.newHangout}
       </Press>
 
       {hangouts.length === 0 ? (
         <>
-          <Empty emoji="🧾" title="No hangouts yet" text="Start one, add your friends, then add what everyone spent." />
+          <Empty emoji="🧾" title={t.noHangouts} text={t.noHangoutsText} />
           <Press className="btn ghost wide" onClick={() => openHangout(st.loadDemo())}>
-            Try a demo hangout
+            {t.tryDemo}
           </Press>
         </>
       ) : (
@@ -47,15 +56,17 @@ export function Home() {
         </div>
       )}
       <FriendsSheet open={roster} onClose={() => setRoster(false)} />
+      <SettingsSheet open={settings} onClose={() => setSettings(false)} />
     </div>
   )
 }
 
 function HangoutCard({ h, friends, i }: { h: Hangout; friends: Record<string, Person>; i: number }) {
+  const t = useT()
   const s = settle(h, friends)
   const n = s.transfers.length
   const people = h.people.map((id) => friends[id]).filter(Boolean)
-  const status = s.total === 0 ? 'No expenses yet' : n ? `${n} transfer${n > 1 ? 's' : ''}` : 'All square ✓'
+  const status = s.total === 0 ? t.noExpenses : n ? t.nTransfers(n) : t.noDebts
   return (
     <m.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...snappy, delay: i * 0.04 }}>
       <Press className="card hangout-card" onClick={() => openHangout(h.id)}>
@@ -66,8 +77,8 @@ function HangoutCard({ h, friends, i }: { h: Hangout; friends: Record<string, Pe
         <div className="hc-bottom">
           <AvatarStack people={people} />
           <span className="hc-meta">
-            {shortDate(h.date)} · <span className={n ? 'accent' : s.total ? 'good' : ''}>{status}</span>
-            {h.dutch && ' · 🤝'}
+            {t.date(h.date)} · <span className={n ? 'accent' : s.total ? 'good' : ''}>{status}</span>
+            {h.dutch && ' · 🇳🇱'}
           </span>
         </div>
       </Press>

@@ -42,17 +42,18 @@ export interface Hangout {
   dutch?: boolean
 }
 
-export const SECTIONS: Record<SectionKey, { label: string; noun: string; emoji: string }> = {
-  event: { label: 'Main event', noun: 'expense', emoji: '🎉' },
-  dining: { label: 'Dining', noun: 'receipt', emoji: '🍽️' },
-  transport: { label: 'Transport', noun: 'ride', emoji: '🚕' },
+// labels live in i18n.ts
+export const SECTIONS: Record<SectionKey, { emoji: string }> = {
+  event: { emoji: '🎉' },
+  dining: { emoji: '🍽️' },
+  transport: { emoji: '🚕' },
 }
 
 export const SECTION_KEYS: SectionKey[] = ['event', 'dining', 'transport']
 
-export const CATEGORIES: Record<Category, { label: string; emoji: string }> = {
-  food: { label: 'Food', emoji: '🍽️' },
-  drinks: { label: 'Drinks', emoji: '🥤' },
-  dessert: { label: 'Dessert', emoji: '🍰' },
-  other: { label: 'Other', emoji: '🧾' },
+export const CATEGORIES: Record<Category, { emoji: string }> = {
+  food: { emoji: '🍽️' },
+  drinks: { emoji: '🥤' },
+  dessert: { emoji: '🍰' },
+  other: { emoji: '🧾' },
 }
