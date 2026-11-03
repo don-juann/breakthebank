@@ -6,10 +6,12 @@ import { back } from '../nav'
 import { useT } from '../i18n'
 import type { Hangout } from '../types'
 import { Press } from '../ui/Press'
-import { AddTile, Avatar } from '../ui/bits'
+import { AddTile, Avatar, copyText } from '../ui/bits'
 import { Sheet } from '../ui/Sheet'
-import { IconBack, IconDining, IconEvent, IconMore, IconSettle, IconTransport } from '../ui/icons'
+import { IconBack, IconCopy, IconDining, IconEvent, IconLink, IconMore, IconSettle, IconShare, IconTransport } from '../ui/icons'
 import { jelly } from '../ui/motion'
+import { toast } from '../ui/toast'
+import { shareHangout, shareLink } from '../sync'
 import { PeopleSheet, PersonSheet } from './People'
 import { SectionView } from './SectionView'
 import { SettleView } from './SettleView'
@@ -113,7 +115,8 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
       <PeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} hangout={h} />
       <PersonSheet open={editing !== null} personId={editing} hangoutId={h.id} onClose={() => setEditing(null)} />
       <Sheet open={menu} onClose={() => setMenu(false)} title={h.name}>
-        <p className="muted">{t.deleteHangoutNote}</p>
+        <ShareBlock hangout={h} />
+        <p className="muted">{h.shareId ? t.deleteSharedNote : t.deleteHangoutNote}</p>
         <Press
           className="btn danger wide"
           onClick={() => {
@@ -126,5 +129,42 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
         </Press>
       </Sheet>
     </>
+  )
+}
+
+function ShareBlock({ hangout: h }: { hangout: Hangout }) {
+  const t = useT()
+  const [busy, setBusy] = useState(false)
+  const link = h.shareId ? shareLink(h.shareId) : null
+  const start = async () => {
+    setBusy(true)
+    const ok = await shareHangout(h.id)
+    setBusy(false)
+    if (!ok) toast(t.offline)
+  }
+  return (
+    <div className="share">
+      <div className="label">{t.shareHangout}</div>
+      <p className="muted small">{t.shareNote}</p>
+      {link ? (
+        <>
+          <div className="share-link">{link}</div>
+          <div className="row-btns">
+            <Press className="btn secondary" onClick={async () => toast((await copyText(link)) ? t.linkCopied : t.copyFailed)}>
+              <IconCopy /> {t.copyLink}
+            </Press>
+            {'share' in navigator && (
+              <Press className="btn secondary" onClick={() => navigator.share({ title: h.name, url: link }).catch(() => {})}>
+                <IconShare /> {t.share}
+              </Press>
+            )}
+          </div>
+        </>
+      ) : (
+        <Press className="btn primary wide" disabled={busy} onClick={start}>
+          <IconLink /> {busy ? '…' : t.shareHangout}
+        </Press>
+      )}
+    </div>
   )
 }

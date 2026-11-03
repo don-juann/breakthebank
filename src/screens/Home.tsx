@@ -7,16 +7,20 @@ import { useT } from '../i18n'
 import type { Hangout, Person } from '../types'
 import { Press } from '../ui/Press'
 import { AvatarStack, Empty, Money } from '../ui/bits'
-import { IconGear, IconPeople, IconPlus } from '../ui/icons'
+import { IconGear, IconLink, IconPeople, IconPlus } from '../ui/icons'
 import { snappy } from '../ui/motion'
 import { FriendsSheet } from './People'
 import { SettingsSheet } from './Settings'
+import { Sheet } from '../ui/Sheet'
+import { toast } from '../ui/toast'
+import { joinHangout } from '../sync'
 
 export function Home() {
   const hangouts = useStore((s) => s.hangouts)
   const friends = useStore((s) => s.friends)
   const [roster, setRoster] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [joining, setJoining] = useState(false)
   const st = useStore.getState()
   const t = useT()
 
@@ -40,6 +44,9 @@ export function Home() {
       <Press className="btn primary big wide" onClick={() => openHangout(st.createHangout())}>
         <IconPlus /> {t.newHangout}
       </Press>
+      <Press className="btn ghost wide" onClick={() => setJoining(true)}>
+        <IconLink /> {t.joinHangout}
+      </Press>
 
       {hangouts.length === 0 ? (
         <>
@@ -57,6 +64,7 @@ export function Home() {
       )}
       <FriendsSheet open={roster} onClose={() => setRoster(false)} />
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
+      <JoinSheet open={joining} onClose={() => setJoining(false)} />
     </div>
   )
 }
@@ -79,9 +87,45 @@ function HangoutCard({ h, friends, i }: { h: Hangout; friends: Record<string, Pe
           <span className="hc-meta">
             {t.date(h.date)} · <span className={n ? 'accent' : s.total ? 'good' : ''}>{status}</span>
             {h.dutch && ' · 🇳🇱'}
+            {h.shareId && ' · 🔗'}
           </span>
         </div>
       </Press>
     </m.div>
+  )
+}
+
+function JoinSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT()
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const join = async () => {
+    setBusy(true)
+    const id = await joinHangout(code)
+    setBusy(false)
+    if (!id) return toast(t.joinFailed)
+    setCode('')
+    onClose()
+    openHangout(id)
+  }
+  return (
+    <Sheet open={open} onClose={onClose} title={t.joinHangout}>
+      <div className="form">
+        <p className="muted">{t.joinHint}</p>
+        <input
+          className="field"
+          placeholder="https://…/?join=…"
+          value={code}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && code.trim() && !busy && join()}
+        />
+        <Press className="btn primary wide" disabled={!code.trim() || busy} onClick={join}>
+          {busy ? '…' : t.join}
+        </Press>
+      </div>
+    </Sheet>
   )
 }

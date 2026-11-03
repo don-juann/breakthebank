@@ -148,6 +148,16 @@ const en = {
   share: 'Share',
   copied: 'Copied, paste it in the chat',
   copyFailed: "Couldn't copy",
+  shareHangout: 'Share hangout',
+  shareNote: 'Anyone with the link can see and edit it.',
+  copyLink: 'Copy link',
+  linkCopied: 'Link copied',
+  offline: "Can't reach the server. Try again later.",
+  joinHangout: 'Join a hangout',
+  joinHint: 'Paste the link a friend sent you.',
+  join: 'Join',
+  joinFailed: "Couldn't open that link",
+  deleteSharedNote: 'Removes it from this phone only. Friends keep their copy.',
   msg: {
     hangout: 'Hangout',
     total: 'Total',
@@ -294,6 +304,16 @@ const kz: Dict = {
   share: 'Бөлісу',
   copied: 'Көшірілді, чатқа қойыңыз',
   copyFailed: 'Көшіру сәтсіз',
+  shareHangout: 'Кездесумен бөлісу',
+  shareNote: 'Сілтемесі барлар көріп, өзгерте алады.',
+  copyLink: 'Сілтемені көшіру',
+  linkCopied: 'Сілтеме көшірілді',
+  offline: 'Серверге қосылу мүмкін болмады.',
+  joinHangout: 'Кездесуге қосылу',
+  joinHint: 'Досыңыз жіберген сілтемені қойыңыз.',
+  join: 'Қосылу',
+  joinFailed: 'Сілтеме ашылмады',
+  deleteSharedNote: 'Тек осы телефоннан өшеді. Достарда қалады.',
   msg: {
     hangout: 'Кездесу',
     total: 'Барлығы',
@@ -305,3 +325,4 @@ const kz: Dict = {
 const DICTS = { en, kz }
 
 export const useT = () => DICTS[usePrefs((s) => s.lang)]
+export const getT = () => DICTS[usePrefs.getState().lang]

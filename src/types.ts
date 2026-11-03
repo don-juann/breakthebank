@@ -40,7 +40,12 @@ export interface Hangout {
   receipts: Receipt[]
   /** split the whole hangout evenly instead of by items */
   dutch?: boolean
+  /** secret key of the synced copy; set once the hangout is shared */
+  shareId?: string
 }
+
+/** the hangout fields synced as one unit; receipts sync one by one */
+export type HangoutMeta = Pick<Hangout, 'name' | 'date' | 'dutch' | 'people'>
 
 // labels live in i18n.ts
 export const SECTIONS: Record<SectionKey, { emoji: string }> = {

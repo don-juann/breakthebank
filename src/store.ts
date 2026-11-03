@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Hangout, Item, Person, Receipt, SectionKey } from './types'
+import type { Hangout, HangoutMeta, Item, Person, Receipt, SectionKey } from './types'
 import { uid } from './lib/money'
 import { categorize } from './lib/categorize'
 
@@ -10,6 +10,13 @@ interface Nav {
   hangoutId: string | null
   receiptId: string | null
   tab: Tab
+}
+
+export interface RemotePatch {
+  meta?: HangoutMeta
+  people?: Record<string, Person>
+  upsert: Receipt[]
+  remove: string[]
 }
 
 interface State {
@@ -23,7 +30,11 @@ interface State {
   removeFriend: (id: string) => void
 
   createHangout: (withCrew?: boolean) => string
-  updateHangout: (id: string, patch: Partial<Pick<Hangout, 'name' | 'date' | 'dutch'>>) => void
+  updateHangout: (id: string, patch: Partial<Pick<Hangout, 'name' | 'date' | 'dutch' | 'shareId'>>) => void
+  /** add a hangout someone shared, with the people in it */
+  importHangout: (h: Hangout, people: Record<string, Person>) => void
+  /** apply changes pulled from the server */
+  mergeRemote: (hid: string, patch: RemotePatch) => void
   deleteHangout: (id: string) => void
   togglePerson: (hid: string, pid: string) => void
 
@@ -50,15 +61,43 @@ const CREW = ['Aibyn', 'Gani', 'Sanzhar', 'Zhan']
 const crewId = (friends: Record<string, Person>, name: string) =>
   Object.values(friends).find((f) => f.name.trim().toLowerCase() === name.toLowerCase())?.id
 
+// same ids on every phone, so a shared hangout doesn't add a second Aibyn
+const crewKey = (name: string) => `crew-${name.toLowerCase()}`
+
 function seedCrew(friends: Record<string, Person>) {
   let hue = Object.keys(friends).length
   for (const name of CREW)
     if (!crewId(friends, name)) {
-      const id = uid()
+      const id = crewKey(name)
       friends[id] = { id, name, cashback: 0, hue: hue++ }
     }
   return friends
 }
+
+/** v6: move crew seeded with random ids onto the shared ones */
+function unifyCrew(s: Pick<State, 'friends' | 'hangouts'>) {
+  const map = new Map<string, string>()
+  for (const name of CREW) {
+    const id = crewId(s.friends, name)
+    if (id && id !== crewKey(name) && !s.friends[crewKey(name)]) map.set(id, crewKey(name))
+  }
+  if (!map.size) return
+  const to = (id: string) => map.get(id) ?? id
+  s.friends = Object.fromEntries(Object.values(s.friends).map((f) => [to(f.id), { ...f, id: to(f.id) }]))
+  for (const h of s.hangouts) {
+    h.people = h.people.map(to)
+    for (const r of h.receipts) {
+      r.payerId = r.payerId && to(r.payerId)
+      r.members = r.members.map(to)
+      for (const it of r.items) it.to = it.to.map(to)
+    }
+  }
+}
+
+const withPeople = (friends: Record<string, Person>, people: Record<string, Person>) => ({
+  ...friends,
+  ...Object.fromEntries(Object.values(people).map((p) => [p.id, { ...friends[p.id], ...p }])),
+})
 
 const single = (r: Receipt, price: number, name: string): Item[] =>
   price > 0 ? [{ id: r.items[0]?.id ?? uid(), name, price, qty: 1, category: 'other', to: [] }] : []
@@ -125,6 +164,27 @@ export const useStore = create<State>()(
           return id
         },
         updateHangout: (id, patch) => edit(id, (h) => Object.assign(h, patch)),
+        importHangout: (h, people) =>
+          set((s) => {
+            const friends = withPeople(s.friends, people)
+            return { friends, hangouts: [{ ...h, people: h.people.filter((id) => friends[id]) }, ...s.hangouts] }
+          }),
+        mergeRemote: (hid, { meta, people, upsert, remove }) =>
+          set((s) => {
+            const friends = people ? withPeople(s.friends, people) : s.friends
+            return {
+              friends,
+              hangouts: s.hangouts.map((h) => {
+                if (h.id !== hid) return h
+                const byId = new Map(h.receipts.map((r) => [r.id, r]))
+                for (const r of upsert) byId.set(r.id, r)
+                for (const id of remove) byId.delete(id)
+                const next = { ...h, ...meta, receipts: [...byId.values()].sort((a, b) => a.createdAt - b.createdAt) }
+                next.people = next.people.filter((id) => friends[id])
+                return next
+              }),
+            }
+          }),
         deleteHangout: (id) =>
           set((s) => {
             const hangouts = s.hangouts.filter((h) => h.id !== id)
@@ -260,7 +320,7 @@ export const useStore = create<State>()(
     },
     {
       name: 'bolu-v1',
-      version: 5,
+      version: 6,
       partialize: (s) => ({ friends: s.friends, hangouts: s.hangouts, nav: s.nav }),
       migrate: (persisted, version) => {
         const s = persisted as Pick<State, 'friends' | 'hangouts' | 'nav'>
@@ -285,6 +345,7 @@ export const useStore = create<State>()(
         }
         if (version < 4) s.friends = seedCrew(s.friends)
         if (version < 5) for (const h of s.hangouts) for (const r of h.receipts) fit(r)
+        if (version < 6) unifyCrew(s)
         return s
       },
     },

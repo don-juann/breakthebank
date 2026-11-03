@@ -1538,3 +1538,31 @@ input:focus {
   font-size: 13px;
   font-weight: 800;
 }
+
+/* ---------- sharing ---------- */
+
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.share .label,
+.share .muted {
+  margin: 0;
+}
+
+.share-link {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--fill);
+  font: 13px/1.35 ui-monospace, 'SF Mono', Menlo, monospace;
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.share .row-btns {
+  margin-top: 0;
+}
