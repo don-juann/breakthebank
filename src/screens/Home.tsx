@@ -41,12 +41,14 @@ export function Home() {
         </div>
       </header>
 
-      <Press className="btn primary big wide" onClick={() => openHangout(st.createHangout())}>
-        <IconPlus /> {t.newHangout}
-      </Press>
-      <Press className="btn ghost wide" onClick={() => setJoining(true)}>
-        <IconLink /> {t.joinHangout}
-      </Press>
+      <div className="home-actions">
+        <Press className="btn primary big wide" onClick={() => openHangout(st.createHangout())}>
+          <IconPlus /> {t.newHangout}
+        </Press>
+        <Press className="btn ghost wide" onClick={() => setJoining(true)}>
+          <IconLink /> {t.joinHangout}
+        </Press>
+      </div>
 
       {hangouts.length === 0 ? (
         <>

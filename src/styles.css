@@ -189,7 +189,18 @@ input:focus {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   margin: 14px 0 20px;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-actions + .list {
+  margin-top: 22px;
 }
 
 .large-title {
