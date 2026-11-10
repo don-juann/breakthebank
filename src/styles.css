@@ -1577,3 +1577,86 @@ input:focus {
 .share .row-btns {
   margin-top: 0;
 }
+
+/* ---------- money rain ---------- */
+
+.rain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.drop {
+  position: absolute;
+  top: 0;
+  width: var(--size);
+  animation: fall var(--fall) linear var(--delay) infinite;
+}
+
+.drop.note {
+  color: var(--good);
+}
+
+.drop.coin {
+  width: calc(var(--size) * 0.6);
+  color: var(--warn);
+}
+
+.drop svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.rain .ink {
+  stroke: var(--bg);
+}
+
+.flutter {
+  display: block;
+  animation: flutter var(--sway) ease-in-out var(--delay) infinite alternate;
+}
+
+.coin svg {
+  animation: spin var(--spin) ease-in-out infinite;
+}
+
+.rain.paused * {
+  animation-play-state: paused;
+}
+
+@keyframes fall {
+  from {
+    transform: translate3d(0, -15vh, 0);
+  }
+  to {
+    transform: translate3d(0, 110vh, 0);
+  }
+}
+
+@keyframes flutter {
+  from {
+    transform: translateX(calc(var(--drift) * -1)) rotate(calc(var(--tilt) * -1)) rotateX(30deg);
+  }
+  to {
+    transform: translateX(var(--drift)) rotate(var(--tilt)) rotateX(-30deg);
+  }
+}
+
+@keyframes spin {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rain {
+    display: none;
+  }
+}

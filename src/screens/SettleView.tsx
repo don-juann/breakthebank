@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useStore } from '../store'
 import { buildMessage, settle, type Transfer } from '../lib/split'
@@ -65,9 +66,11 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
         <div className="card pad all-square">{s.total > 0 ? `✅ ${t.allSquare}` : t.addFirst}</div>
       ) : (
         <div className="list">
-          {s.transfers.map((t, i) => (
-            <TransferRow key={t.key} t={t} i={i} friends={friends} />
-          ))}
+          <AnimatePresence initial={false}>
+            {s.transfers.map((t) => (
+              <TransferRow key={t.key} t={t} friends={friends} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -117,7 +120,7 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
   )
 }
 
-function TransferRow({ t, i, friends }: { t: Transfer; i: number; friends: Record<string, Person> }) {
+function TransferRow({ t, friends }: { t: Transfer; friends: Record<string, Person> }) {
   const from = friends[t.from]
   const to = friends[t.to]
   return (
@@ -126,7 +129,7 @@ function TransferRow({ t, i, friends }: { t: Transfer; i: number; friends: Recor
       layout
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...snappy, delay: i * 0.05 }}
+      transition={snappy}
     >
       <Avatar person={from} size={38} />
       <span className="tr-line">

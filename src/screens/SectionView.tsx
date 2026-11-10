@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useStore } from '../store'
 import { openReceipt } from '../nav'
@@ -27,10 +28,8 @@ export function SectionView({
   const friends = useStore((s) => s.friends)
   const t = useT()
   const sec = t.sections[section]
-  const [quick, setQuick] = useState(false)
   const receipts = h.receipts.filter((r) => r.section === section)
   const total = receipts.reduce((s, r) => s + calcReceipt(r, friends).total, 0)
-  const guard = (fn: () => void) => () => (h.people.length ? fn() : onNeedPeople())
 
   return (
     <>
@@ -50,20 +49,39 @@ export function SectionView({
         <Empty emoji={EMPTY_EMOJI[section]} title={sec.empty[0]} text={sec.empty[1]} />
       ) : (
         <div className="list">
-          {receipts.map((r, i) => (
-            <ReceiptCard key={r.id} r={r} friends={friends} i={i} />
-          ))}
+          {/* cards already there when the tab opens don't animate, new ones do */}
+          <AnimatePresence initial={false}>
+            {receipts.map((r) => (
+              <ReceiptCard key={r.id} r={r} friends={friends} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
+    </>
+  )
+}
 
-      {h.people.length > 0 && (
-        <div className="fab-row">
-          <Press className="btn primary float" onClick={guard(() => setQuick(true))}>
-            <IconPlus /> {sec.add}
-          </Press>
-        </div>
-      )}
-
+/** lives outside the animated tab content so it never moves during a tab switch */
+export function SectionAdd({ hangout: h, section }: { hangout: Hangout; section: SectionKey }) {
+  const t = useT()
+  const sec = t.sections[section]
+  const [quick, setQuick] = useState(false)
+  return (
+    <>
+      <m.div
+        className="fab-row"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={snappy}
+      >
+        <Press className="btn primary float" onClick={() => setQuick(true)}>
+          <IconPlus />
+          <m.span key={section} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+            {sec.add}
+          </m.span>
+        </Press>
+      </m.div>
       <Sheet open={quick} onClose={() => setQuick(false)} title={sec.title}>
         {quick && <QuickForm hangout={h} section={section} onClose={() => setQuick(false)} />}
       </Sheet>
@@ -71,14 +89,14 @@ export function SectionView({
   )
 }
 
-function ReceiptCard({ r, friends, i }: { r: Receipt; friends: Record<string, Person>; i: number }) {
+function ReceiptCard({ r, friends }: { r: Receipt; friends: Record<string, Person> }) {
   const t = useT()
   const c = calcReceipt(r, friends)
   const payer = r.payerId ? friends[r.payerId] : undefined
   const members = r.members.map((id) => friends[id]).filter(Boolean)
   const title = r.title || (r.section === 'transport' ? t.sections.transport.name : t.untitled)
   return (
-    <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...snappy, delay: i * 0.035 }}>
+    <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={snappy}>
       <Press className="card receipt-card" onClick={() => openReceipt(r.id)}>
         <div className="rc-top">
           <span className="rc-title">{title}</span>

@@ -7,6 +7,7 @@ import { Home } from './screens/Home'
 import { HangoutView } from './screens/HangoutView'
 import { ReceiptView } from './screens/ReceiptView'
 import { Toaster } from './ui/toast'
+import { MoneyRain } from './ui/MoneyRain'
 import { push } from './ui/motion'
 
 export default function App() {
@@ -57,6 +58,7 @@ function Layer({ root, covered, children }: { root?: boolean; covered?: boolean;
         if (i.offset.x > 100 || i.velocity.x > 500) back()
       }}
     >
+      <MoneyRain paused={covered} />
       {children}
       {!root && standalone && <div className="edge" onPointerDown={(e) => controls.start(e)} />}
       <m.div

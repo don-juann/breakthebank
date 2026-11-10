@@ -13,7 +13,7 @@ import { jelly } from '../ui/motion'
 import { toast } from '../ui/toast'
 import { shareHangout, shareLink } from '../sync'
 import { PeopleSheet, PersonSheet } from './People'
-import { SectionView } from './SectionView'
+import { SectionAdd, SectionView } from './SectionView'
 import { SettleView } from './SettleView'
 
 const TABS: { key: Tab; Icon: () => React.JSX.Element }[] = [
@@ -86,10 +86,10 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
         <AnimatePresence mode="wait" initial={false}>
           <m.div
             key={tab}
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.16 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
           >
             {tab === 'settle' ? (
               <SettleView hangout={h} />
@@ -99,6 +99,10 @@ export function HangoutView({ hangout: h }: { hangout: Hangout }) {
           </m.div>
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {tab !== 'settle' && h.people.length > 0 && <SectionAdd key="add" hangout={h} section={tab} />}
+      </AnimatePresence>
 
       <nav className="tabbar">
         {TABS.map(({ key, Icon }) => (
