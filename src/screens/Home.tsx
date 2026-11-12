@@ -82,6 +82,7 @@ function HangoutCard({ h, friends, i }: { h: Hangout; friends: Record<string, Pe
       <Press className="card hangout-card" onClick={() => openHangout(h.id)}>
         <div className="hc-top">
           <span className="hc-name">{h.name}</span>
+          <span className="lead" />
           <Money value={s.total} className="hc-total" />
         </div>
         <div className="hc-bottom">

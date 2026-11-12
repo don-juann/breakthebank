@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useStore } from '../store'
 import { buildMessage, settle, type Transfer } from '../lib/split'
@@ -7,12 +6,22 @@ import { fmt, tenge } from '../lib/money'
 import type { Hangout, Person } from '../types'
 import { Press } from '../ui/Press'
 import { Avatar, Money, Switch, copyText } from '../ui/bits'
+import { Sheet } from '../ui/Sheet'
 import { FlagNL, IconCopy, IconShare } from '../ui/icons'
-import { jelly, snappy } from '../ui/motion'
+import { jelly } from '../ui/motion'
 import { toast } from '../ui/toast'
 import { useT } from '../i18n'
 
-export function SettleView({ hangout: h }: { hangout: Hangout }) {
+export function SettleSheet({ hangout, open, onClose }: { hangout: Hangout; open: boolean; onClose: () => void }) {
+  const t = useT()
+  return (
+    <Sheet open={open} onClose={onClose} title={t.settleUp}>
+      {open && <Settle hangout={hangout} />}
+    </Sheet>
+  )
+}
+
+function Settle({ hangout: h }: { hangout: Hangout }) {
   const friends = useStore((s) => s.friends)
   const s = useMemo(() => settle(h, friends), [h, friends])
   const [breakdown, setBreakdown] = useState(true)
@@ -24,10 +33,20 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
   const toggleDutch = () => useStore.getState().updateHangout(h.id, { dutch: !h.dutch })
 
   return (
-    <>
-      <div className="section-head">
-        <h2>{t.settleUp}</h2>
-      </div>
+    <div className="settle">
+      {s.transfers.length === 0 ? (
+        <div className="card pad all-square">{s.total > 0 ? `✅ ${t.allSquare}` : t.addFirst}</div>
+      ) : (
+        // transfers feed out of a slot, one after another
+        <div className="slip">
+          {s.transfers.map((tr, i) => (
+            <TransferRow key={tr.key} tr={tr} i={i} friends={friends} />
+          ))}
+        </div>
+      )}
+
+      {s.skipped > 0 && <div className="warn-card">{t.skipped(s.skipped)}</div>}
+
       <div className="stats">
         <div className="stat">
           <span className="stat-label">{t.totalSpent}</span>
@@ -54,23 +73,6 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
             {h.dutch ? t.goingDutch(tenge(s.each)) : t.goDutch}
           </Press>
           <p className="muted small dutch-note">{t.dutchNote}</p>
-        </div>
-      )}
-
-      {s.skipped > 0 && (
-        <div className="warn-card">{t.skipped(s.skipped)}</div>
-      )}
-
-      <div className="group-title">{t.transfers}</div>
-      {s.transfers.length === 0 ? (
-        <div className="card pad all-square">{s.total > 0 ? `✅ ${t.allSquare}` : t.addFirst}</div>
-      ) : (
-        <div className="list">
-          <AnimatePresence initial={false}>
-            {s.transfers.map((t) => (
-              <TransferRow key={t.key} t={t} friends={friends} />
-            ))}
-          </AnimatePresence>
         </div>
       )}
 
@@ -116,30 +118,32 @@ export function SettleView({ hangout: h }: { hangout: Hangout }) {
           </div>
         </>
       )}
-    </>
+    </div>
   )
 }
 
-function TransferRow({ t, friends }: { t: Transfer; friends: Record<string, Person> }) {
-  const from = friends[t.from]
-  const to = friends[t.to]
+function TransferRow({ tr, i, friends }: { tr: Transfer; i: number; friends: Record<string, Person> }) {
+  const from = friends[tr.from]
+  const to = friends[tr.to]
   return (
-    <m.div
-      className="card transfer"
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={snappy}
-    >
-      <Avatar person={from} size={38} />
-      <span className="tr-line">
-        <b>{from.name}</b>
-        <span className="tr-arrow">→</span>
-        <span className="tr-amt num">{tenge(t.amount)}</span>
-        <span className="tr-arrow">→</span>
-        <b>{to.name}</b>
-      </span>
-      <Avatar person={to} size={38} />
-    </m.div>
+    <div className="slip-line">
+      <m.div
+        className="transfer"
+        initial={{ y: '-105%' }}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', stiffness: 520, damping: 34, delay: 0.06 + i * 0.04 }}
+      >
+        <span className="pair">
+          <Avatar person={from} size={28} />
+          <Avatar person={to} size={28} />
+        </span>
+        <span className="tr-who">
+          <b>{from.name}</b>
+          <span className="tr-arrow">→</span>
+          <b>{to.name}</b>
+        </span>
+        <span className="tr-amt num">{tenge(tr.amount)}</span>
+      </m.div>
+    </div>
   )
 }

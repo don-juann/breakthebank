@@ -13,7 +13,7 @@ const PIECES = columns.map((col, i) => {
     coin: i % 3 === 2,
     style: {
       left: `${((col + rand(0.15, 0.85)) / COUNT) * 100}%`,
-      opacity: 0.08 + near * 0.1,
+      opacity: 0.05 + near * 0.07,
       '--size': `${Math.round(22 + near * 20)}px`,
       '--fall': `${fall.toFixed(1)}s`,
       '--delay': `${(-rand(0, fall)).toFixed(1)}s`,

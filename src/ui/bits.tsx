@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { useSpring, useTransform } from 'motion/react'
 import * as m from 'motion/react-m'
 import type { Person } from '../types'
@@ -131,6 +131,41 @@ export function AvatarStack({ people, size = 22 }: { people: Person[]; size?: nu
       ))}
       {people.length > 4 && <span className="stack-more">+{people.length - 4}</span>}
     </span>
+  )
+}
+
+/** options with one sliding pill under the picked one */
+export function Segmented<K extends string>({
+  id,
+  options,
+  value,
+  onChange,
+  small,
+}: {
+  id: string
+  options: { key: K; label: ReactNode }[]
+  value: K
+  onChange: (k: K) => void
+  small?: boolean
+}) {
+  // scoped per instance, so a freshly opened sheet doesn't fly the pill in from the last one
+  const scope = useId()
+  return (
+    <div className={`seg ${small ? 'small' : ''}`} role="tablist">
+      {options.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          role="tab"
+          aria-selected={o.key === value}
+          className={`seg-opt ${o.key === value ? 'on' : ''}`}
+          onClick={() => onChange(o.key)}
+        >
+          {o.key === value && <m.span layoutId={`seg-${id}-${scope}`} className="seg-pill" transition={snappy} />}
+          <span className="seg-label">{o.label}</span>
+        </button>
+      ))}
+    </div>
   )
 }
 

@@ -3,17 +3,23 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { jelly } from './motion'
 
-const useToast = create<{ msg: string | null; n: number }>(() => ({ msg: null, n: 0 }))
+interface Action {
+  label: string
+  run: () => void
+}
+
+const useToast = create<{ msg: string | null; n: number; action?: Action }>(() => ({ msg: null, n: 0 }))
 let timer = 0
 
-export function toast(msg: string) {
+/** an action (like Undo) keeps the toast up longer */
+export function toast(msg: string, action?: Action) {
   clearTimeout(timer)
-  useToast.setState((s) => ({ msg, n: s.n + 1 }))
-  timer = window.setTimeout(() => useToast.setState({ msg: null }), 1800)
+  useToast.setState((s) => ({ msg, action, n: s.n + 1 }))
+  timer = window.setTimeout(() => useToast.setState({ msg: null }), action ? 5000 : 1800)
 }
 
 export function Toaster() {
-  const { msg, n } = useToast()
+  const { msg, n, action } = useToast()
   return (
     <AnimatePresence>
       {msg && (
@@ -26,6 +32,19 @@ export function Toaster() {
           transition={jelly}
         >
           {msg}
+          {action && (
+            <button
+              type="button"
+              className="toast-action"
+              onClick={() => {
+                clearTimeout(timer)
+                useToast.setState({ msg: null })
+                action.run()
+              }}
+            >
+              {action.label}
+            </button>
+          )}
         </m.div>
       )}
     </AnimatePresence>

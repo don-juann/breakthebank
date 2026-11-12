@@ -82,3 +82,19 @@ export const IconShare = () => (
     <path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M6 11H5v9h14v-9h-1" />
   </svg>
 )
+export const IconBackspace = () => (
+  <svg {...base}>
+    <path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z" />
+    <path d="M12.5 9.5l5 5M17.5 9.5l-5 5" />
+  </svg>
+)
+export const IconChevronDown = () => (
+  <svg {...base}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)
+export const IconClose = () => (
+  <svg {...base}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+)

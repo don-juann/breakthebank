@@ -1660,3 +1660,807 @@ input:focus {
     display: none;
   }
 }
+
+/* ==================== one live bill ==================== */
+
+.num {
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: -0.03em;
+  /* a mono space is a full digit wide; pull thousands groups back together */
+  word-spacing: -0.32em;
+}
+
+/* dotted leader between a name and its amount */
+.lead {
+  flex: 1 1 auto;
+  min-width: 14px;
+  height: 0;
+  margin: 0 6px;
+  position: relative;
+  top: -0.3em;
+  border-bottom: 2px dotted color-mix(in srgb, var(--text) 24%, transparent);
+}
+
+.hc-top {
+  gap: 0;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 0 3px var(--good-soft);
+}
+
+.people-row .pick {
+  width: 56px;
+}
+
+.scroll.bill-scroll {
+  padding-bottom: calc(var(--bottom) + 120px);
+}
+
+.bill {
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 4px 0 6px;
+  margin-top: 12px;
+}
+
+.bill-group + .bill-group {
+  border-top: 1.5px dashed var(--sep);
+}
+
+.bill-head {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  padding: 14px 16px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  text-align: left;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+}
+
+.bill-head svg {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+  margin-right: 7px;
+}
+
+.bill-head .cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cat);
+  align-self: center;
+  margin-right: 8px;
+}
+
+.bill-head.lifted {
+  opacity: 0.3;
+}
+
+.bill-head-amt {
+  font-size: 14px;
+  color: var(--text);
+  text-transform: none;
+}
+
+.bill-line-wrap {
+  overflow: hidden;
+}
+
+.bill-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 16px;
+  transition: background 0.15s;
+}
+
+.bill-line:active {
+  background: var(--fill);
+}
+
+.bill-row {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.bill-name {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-qty {
+  margin-left: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.bill-amt {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.bill-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.bill-payer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bill-who {
+  margin-left: auto;
+}
+
+.bill-more {
+  display: block;
+  width: 100%;
+  padding: 6px 16px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--accent-ink);
+}
+
+.item-line {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+}
+
+.item-line.selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent-ink);
+}
+
+/* ---------- bottom bar: total, who pays whom, add ---------- */
+
+.bill-dock {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--bottom) + 12px);
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+}
+
+.peek {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 16px;
+  border-radius: 24px;
+  text-align: left;
+  background: var(--surface);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.14), 0 0 0 0.5px var(--sep);
+}
+
+.peek-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.peek-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.peek-total {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.peek-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.peek-line b {
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+
+.peek-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.peek-arrow {
+  color: var(--text-3);
+}
+
+.peek-more {
+  margin-left: auto;
+  padding: 1px 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.add-btn {
+  width: 68px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.add-btn svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* ---------- segmented ---------- */
+
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--fill);
+}
+
+.seg-opt {
+  position: relative;
+  flex: 1;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-2);
+  transition: color 0.2s;
+}
+
+.seg-opt.on {
+  color: var(--text);
+}
+
+.seg-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.seg-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seg-label svg {
+  width: 18px;
+  height: 18px;
+}
+
+.seg.small .seg-opt {
+  min-height: 34px;
+  font-size: 14px;
+}
+
+/* ---------- add sheet & amounts ---------- */
+
+.add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-amount {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.typed {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.typed.blank {
+  color: var(--text-3);
+}
+
+.typed-qty {
+  font-size: 0.7em;
+  color: var(--accent-ink);
+}
+
+.typed-cur {
+  font-size: 0.6em;
+  color: var(--text-2);
+  word-spacing: 0;
+}
+
+.typed-qty {
+  word-spacing: 0;
+}
+
+.add-people .label {
+  margin: 2px 0 0;
+}
+
+.add-people .picker {
+  padding-top: 4px;
+}
+
+.amount-display {
+  display: flex;
+  width: 100%;
+  margin: 4px 0 14px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: left;
+  transition: box-shadow 0.2s;
+}
+
+.amount-display.on {
+  box-shadow: var(--shadow), inset 0 0 0 2px var(--accent-ink);
+}
+
+/* ---------- keypad ---------- */
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.keypad.wide {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.key {
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.key.fn {
+  background: var(--fill);
+  box-shadow: none;
+  color: var(--text-2);
+}
+
+.key svg {
+  width: 24px;
+  height: 24px;
+}
+
+.keypad.wide .qty {
+  grid-column: 4;
+  grid-row: 1;
+  font-size: 26px;
+}
+
+.keypad.wide .del {
+  grid-column: 4;
+  grid-row: 2;
+}
+
+.key-action {
+  grid-column: 4;
+  grid-row: 3 / span 2;
+  display: grid;
+}
+
+.key.go {
+  height: auto;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.key.go:disabled {
+  opacity: 0.4;
+}
+
+/* ---------- receipt screen ---------- */
+
+.who .label {
+  margin-top: 2px;
+}
+
+.who .picker {
+  padding-top: 4px;
+}
+
+.items-bill {
+  margin: 0 0 12px;
+}
+
+.totals .fee-row + .bill-row {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--sep);
+}
+
+.totals .bill-row.sum {
+  padding: 4px 0;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.totals .bill-row.total {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.totals .bill-row.good {
+  color: var(--good);
+  font-weight: 650;
+}
+
+.pad-dock,
+.entry-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px calc(var(--bottom) + 12px);
+  background: var(--bg);
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.12), 0 0 0 0.5px var(--sep);
+}
+
+.scroll.with-pad {
+  padding-bottom: calc(var(--bottom) + 320px);
+}
+
+.scroll.with-strip {
+  padding-bottom: calc(var(--bottom) + 190px);
+}
+
+.scroll.with-entry {
+  padding-bottom: calc(var(--bottom) + 430px);
+}
+
+.strip {
+  display: flex;
+  justify-content: safe center;
+  gap: 2px;
+  margin: 0 -12px;
+  padding: 2px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip .bubble {
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.strip .all-ava {
+  width: 44px;
+  height: 44px;
+}
+
+.bubble.off {
+  opacity: 0.45;
+}
+
+.bubble.on .bubble-ava {
+  box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--accent-ink);
+}
+
+.dock-hint {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.sel-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px;
+}
+
+.sel-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sel-amt {
+  font-weight: 700;
+}
+
+.btn.small {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.entry-name {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 8px 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.entry-row .typed {
+  font-size: 26px;
+}
+
+.entry-cats {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-chip {
+  flex: 1;
+  min-height: 34px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 650;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.mini-chip.on {
+  background: color-mix(in srgb, var(--cat) 20%, var(--surface));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--cat);
+}
+
+/* ---------- settle sheet ---------- */
+
+.settle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settle .group-title {
+  margin: 8px 4px 0;
+}
+
+.settle .dutch {
+  margin-top: 0;
+}
+
+/* the slip the transfers print onto */
+.slip {
+  padding: 2px 0;
+  border-radius: 6px 6px 18px 18px;
+  border-top: 3px solid var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.slip-line {
+  overflow: hidden;
+}
+
+.slip-line + .slip-line {
+  border-top: 1.5px dashed var(--sep);
+}
+
+/* ---------- undo ---------- */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-action {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 22%, transparent);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+@media (min-width: 640px) {
+  .bill-dock,
+  .pad-dock,
+  .entry-dock {
+    left: 50%;
+    right: auto;
+    width: min(560px, calc(100% - 24px));
+    translate: -50% 0;
+  }
+}
+
+.slip .transfer {
+  gap: 10px;
+}
+
+.tr-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tr-who b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slip .tr-amt {
+  font-size: 16px;
+}
+
+/* review pass: clearer entry state */
+.key.go:disabled {
+  opacity: 1;
+  background: var(--fill);
+  color: var(--text-3);
+  box-shadow: none;
+}
+
+.keypad .key {
+  height: 47px;
+}
+
+.caret {
+  display: inline-block;
+  width: 2.5px;
+  height: 0.85em;
+  margin-left: 3px;
+  vertical-align: -0.08em;
+  border-radius: 2px;
+  background: var(--accent-ink);
+  animation: caret 1.05s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}
+
+.entry-last {
+  display: flex;
+  align-items: baseline;
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.entry-last .bill-name {
+  font-size: 14px;
+}
+
+.scroll.with-strip {
+  padding-bottom: calc(var(--bottom) + 240px);
+}
+
+.scroll.with-entry {
+  padding-bottom: calc(var(--bottom) + 450px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .add-btn {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), inset 0 0 0 1.5px color-mix(in srgb, var(--accent-ink) 45%, transparent);
+  }
+}
+
+.keypad .key.go {
+  height: auto;
+}
+
+/* who pays whom: two whole avatars, never overlapped */
+.pair {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pair .avatar {
+  flex-shrink: 0;
+}
